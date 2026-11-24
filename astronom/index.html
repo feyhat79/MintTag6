@@ -3,7 +3,7 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
-    <title>Die Notiz des Astronomen – Spionage-Decoder</title>
+    <title>Die Notiz des Astronomen – Übungs-Labor</title>
     <link rel="stylesheet" href="style.css">
 </head>
 <body>
@@ -23,7 +23,7 @@
                 </div>
                 <div class="brand-text">
                     <h1>Die Notiz des Astronomen</h1>
-                    <p class="subtitle">Entschlüssle den geheimen Standort des Meteoriten mithilfe der 3 Gitter</p>
+                    <p class="subtitle">Übe Gitter-Code und Caesar-Scheibe – die echte Nachricht knackst du danach auf Papier!</p>
                 </div>
             </div>
 
@@ -40,120 +40,157 @@
 
         <!-- Modus-Auswahl -->
         <nav class="tab-bar" role="tablist" aria-label="Bereiche">
-            <button type="button" class="tab-btn active" id="tab-decode" role="tab" aria-selected="true">
-                <span aria-hidden="true">🕵️</span> Abgefangene Notiz entschlüsseln
+            <button type="button" class="tab-btn active" id="tab-train" role="tab" aria-selected="true">
+                <span aria-hidden="true">🕵️</span> Verfahren üben (3 Stufen)
             </button>
             <button type="button" class="tab-btn" id="tab-encode" role="tab" aria-selected="false">
                 <span aria-hidden="true">🔐</span> Selber verschlüsseln (Partner-Modus)
             </button>
         </nav>
 
-        <!-- Ansicht 1: Entschlüsseln -->
-        <main id="decode-view" class="decode-layout">
-            <!-- Abgefangene Nachricht -->
-            <section class="panel message-panel" aria-label="Verschlüsselte Nachricht">
+        <!-- Ansicht 1: Verfahren üben -->
+        <main id="train-view" class="train-layout">
+            <!-- Stufen-Leiste -->
+            <section class="panel stage-panel" aria-label="Übungs-Stufe wählen">
+                <div class="stage-bar" role="group" aria-label="Trainings-Stufen">
+                    <button type="button" class="stage-pill active" data-stage="gitter">
+                        <span class="stage-num" id="badge-gitter">1</span>
+                        <span class="stage-meta">
+                            <strong>Gitter-Code</strong>
+                            <small>Linien &amp; Punkte selbst ablesen</small>
+                        </span>
+                    </button>
+                    <button type="button" class="stage-pill" data-stage="caesar">
+                        <span class="stage-num" id="badge-caesar">2</span>
+                        <span class="stage-meta">
+                            <strong>Caesar-Scheibe</strong>
+                            <small>Scheibe drehen &amp; verschieben</small>
+                        </span>
+                    </button>
+                    <button type="button" class="stage-pill" data-stage="double">
+                        <span class="stage-num" id="badge-double">3</span>
+                        <span class="stage-meta">
+                            <strong>Doppel-Code</strong>
+                            <small>Erst Gitter, dann Caesar</small>
+                        </span>
+                    </button>
+                </div>
+            </section>
+
+            <!-- Aufgaben-Werkbank -->
+            <section class="panel mission-panel" aria-label="Übungs-Werkbank">
                 <div class="panel-header">
                     <div>
-                        <h2 id="mission-title">Abgefangener Standort (Original-Notiz)</h2>
-                        <p class="panel-hint">
-                            Tippe auf ein Geheimzeichen und wähle dann den passenden Buchstaben im Gitter (oder tippe direkt per Tastatur).
+                        <h2 id="mission-title">Übung 1: Gitter-Code ablesen</h2>
+                        <p class="panel-hint" id="mission-desc">
+                            Lies jedes Geheimzeichen aus den 3 Gittern unten ab und tippe den passenden Buchstaben ein.
                         </p>
                     </div>
                     <div class="header-tools">
-                        <div class="mode-switch" role="group" aria-label="Nachricht wählen">
-                            <button type="button" class="mode-pill active" data-mission="main">Original</button>
-                            <button type="button" class="mode-pill" data-mission="bonus1">Bonus 1</button>
-                            <button type="button" class="mode-pill" data-mission="bonus2">Bonus 2</button>
-                        </div>
+                        <button type="button" class="btn btn-secondary btn-compact" id="new-puzzle-btn">
+                            <span aria-hidden="true">🎲</span> Neues Beispiel
+                        </button>
                         <button type="button" class="btn btn-ghost btn-compact" id="clear-inputs-btn">
                             <span aria-hidden="true">🗑️</span> Leeren
                         </button>
                     </div>
                 </div>
 
-                <div class="cipher-words" id="cipher-words" aria-label="Geheimschrift-Felder"></div>
-
-                <div class="message-actions">
-                    <div class="action-group">
-                        <button type="button" class="btn btn-primary" id="check-msg-btn">
-                            <span aria-hidden="true">🔍</span> Lösung prüfen
-                        </button>
-                        <button type="button" class="btn btn-secondary" id="hint-btn">
-                            <span aria-hidden="true">💡</span> 1 Buchstabe verraten
-                        </button>
+                <!-- Schritt 1 / Eingabezeile -->
+                <div class="step-card" id="step1-card">
+                    <div class="step-card-head">
+                        <span class="step-pill" id="step1-pill">Aufgabe</span>
+                        <span class="step-card-title" id="step1-title">Entschlüssle die Zeichen mit den 3 Gittern:</span>
                     </div>
-                    <div class="match-info" id="match-info">
-                        Gleiche Zeichen in der Nachricht werden beim Antippen gemeinsam markiert.
+                    <div class="cipher-words" id="step1-words" aria-label="Eingabefelder Schritt 1"></div>
+                    <div class="step-actions">
+                        <button type="button" class="btn btn-primary" id="check-step1-btn">
+                            <span aria-hidden="true">🔍</span> Prüfen
+                        </button>
                     </div>
                 </div>
 
-                <div class="feedback-bar neutral" id="decode-feedback" aria-live="polite">
-                    <span class="fb-icon" id="decode-fb-icon">🔭</span>
-                    <span id="decode-fb-text">Wähle das erste Geheimzeichen aus und suche seine Linienform in den 3 Gittern.</span>
+                <!-- Schritt 2 (nur bei Doppelter Verschlüsselung sichtbar) -->
+                <div class="step-card hidden" id="step2-card">
+                    <div class="step-card-head">
+                        <span class="step-pill step-pill-caesar">Schritt 2</span>
+                        <span class="step-card-title">
+                            Die Buchstaben ergeben noch kein deutsches Wort – drehe jetzt die <strong>Caesar-Scheibe</strong> und tippe den Klartext ein:
+                        </span>
+                    </div>
+                    <div class="cipher-words" id="step2-words" aria-label="Eingabefelder Schritt 2"></div>
+                    <div class="step-actions">
+                        <button type="button" class="btn btn-primary" id="check-step2-btn">
+                            <span aria-hidden="true">✅</span> Klartext prüfen
+                        </button>
+                    </div>
+                </div>
+
+                <div class="feedback-bar neutral" id="train-feedback" aria-live="polite">
+                    <span class="fb-icon" id="train-fb-icon">🔭</span>
+                    <span id="train-fb-text">Schau dir die Wände der Zeichen genau an und trage die Buchstaben ein.</span>
                 </div>
             </section>
 
-            <!-- Die 3 Gitter + Linien-Lupe -->
-            <section class="bottom-grid">
-                <div class="panel grids-panel" aria-label="Die 3 Gitter des Astronomen">
-                    <div class="grids-header">
+            <!-- Hilfsmittel darunter: 3 Gitter & Drehbare Caesar-Scheibe -->
+            <section class="tools-grid" id="tools-grid">
+                <!-- Die 3 statischen Gitter (nur zum Ablesen, keine Klick-Automatik!) -->
+                <div class="panel grids-panel" id="grids-panel" aria-label="Die 3 Gitter (Ablese-Tafel)">
+                    <div class="tools-panel-head">
                         <div>
-                            <h3>Die 3 Gitter des Astronomen</h3>
+                            <h3>Die 3 Gitter (Ablese-Tafel)</h3>
                             <p class="panel-hint">
-                                Achte auf die <strong>Wände um den Buchstaben</strong> und auf das Zeichen (<strong>ohne Punkt</strong>, <strong>•</strong> oder <strong>°</strong>).
+                                Nur zum Ablesen: Achte auf die <strong>Wände</strong> rund um den Buchstaben und auf <strong>•</strong> bzw. <strong>°</strong>.
                             </p>
                         </div>
-                        <div class="filter-pills" role="group" aria-label="Gitter filtern">
-                            <button type="button" class="filter-pill active" data-filter="all">Alle</button>
-                            <button type="button" class="filter-pill" data-filter="0">Ohne</button>
-                            <button type="button" class="filter-pill" data-filter="1">Mit •</button>
-                            <button type="button" class="filter-pill" data-filter="2">Mit °</button>
-                        </div>
                     </div>
-
                     <div class="grids-trio" id="grids-trio"></div>
                 </div>
 
-                <aside class="panel inspector-panel" aria-label="Symbol-Lupe">
-                    <h3>Symbol-Lupe</h3>
-                    <div class="inspector-card" id="inspector-card">
-                        <div class="inspector-pair">
-                            <div class="insp-box">
-                                <span class="insp-label">Gesuchtes Zeichen</span>
-                                <div class="insp-svg-wrap" id="insp-target-svg"></div>
-                            </div>
-                            <span class="insp-arrow" aria-hidden="true">⇄</span>
-                            <div class="insp-box">
-                                <span class="insp-label">Gitter-Vorschau</span>
-                                <div class="insp-svg-wrap" id="insp-hover-svg"></div>
-                                <span class="insp-letter" id="insp-hover-letter">–</span>
-                            </div>
-                        </div>
-                        <p class="insp-explain" id="insp-explain">
-                            Fahre über ein Gitterfeld oder tippe darauf, um genau zu sehen, welche Linien zu welchem Buchstaben gehören.
-                        </p>
-                    </div>
-
-                    <div class="tip-box">
-                        <span class="tip-icon-badge" aria-hidden="true">✨</span>
-                        <div class="tip-content">
-                            <strong class="tip-heading">Spionage-Tipp</strong>
-                            <p>
-                                In der Mitte (z. B. bei <strong>E</strong>) hat das Feld alle 4 Wände (<strong>□</strong>). In der Ecke hat es nur 2 Wände!
+                <!-- Drehbare Caesar-Scheibe -->
+                <div class="panel caesar-panel hidden" id="caesar-panel" aria-label="Drehbare Caesar-Scheibe">
+                    <div class="tools-panel-head">
+                        <div>
+                            <h3>Drehbare Caesar-Scheibe</h3>
+                            <p class="panel-hint">
+                                <strong>Außen:</strong> Geheim-Buchstabe · <strong>Innen:</strong> Klartext. Ziehe den inneren Ring oder nutze die Tasten!
                             </p>
                         </div>
                     </div>
-                </aside>
+
+                    <div class="caesar-stage">
+                        <div class="caesar-wheel-wrap" id="caesar-wheel-wrap">
+                            <svg class="caesar-svg" id="caesar-svg" viewBox="0 0 320 320" aria-label="Interaktive Caesar-Scheibe"></svg>
+                        </div>
+
+                        <div class="caesar-controls">
+                            <button type="button" class="btn btn-secondary" id="caesar-left-btn" aria-label="Scheibe um 1 nach links drehen">
+                                ⟲ −1
+                            </button>
+                            <div class="caesar-readout" aria-live="polite">
+                                <span class="readout-label">Aktuelle Einstellung</span>
+                                <strong id="caesar-readout-val">Klar A = Geheim A (+0)</strong>
+                            </div>
+                            <button type="button" class="btn btn-secondary" id="caesar-right-btn" aria-label="Scheibe um 1 nach rechts drehen">
+                                +1 ⟳
+                            </button>
+                        </div>
+
+                        <p class="caesar-mini-tip">
+                            <strong>Tipp:</strong> Suche ein kurzes Wort mit 2 oder 3 Buchstaben (z. B. <em>IM</em>, <em>AM</em>, <em>DER</em>, <em>IST</em>) und drehe die Scheibe, bis die Buchstaben passen!
+                        </p>
+                    </div>
+                </div>
             </section>
         </main>
 
-        <!-- Ansicht 2: Selber verschlüsseln -->
+        <!-- Ansicht 2: Selber verschlüsseln (Partner-Modus) -->
         <section id="encode-view" class="panel encode-panel hidden" aria-label="Selber verschlüsseln">
             <div class="panel-header">
                 <div>
-                    <h2>Eigene Geheim-Notiz erstellen</h2>
+                    <h2>Partner-Modus: Eigene Doppel-Botschaft erzeugen</h2>
                     <p class="panel-hint">
-                        Tippe ein Wort oder einen kurzen Satz (A–Z) ein – oder erstelle ein Rätsel für deinen Sitznachbarn!
+                        Wähle eine Caesar-Verschiebung und schreibe ein kurzes Wort. Dein Sitznachbar kann es dann auf Papier oder im Übungslabor knacken!
                     </p>
                 </div>
             </div>
@@ -162,13 +199,22 @@
                 <input
                     type="text"
                     id="encode-input"
-                    maxlength="48"
-                    placeholder="z. B. HIER IST DER METEORIT"
+                    maxlength="36"
+                    placeholder="z. B. GEHEIM IM TURM"
                     aria-label="Klartext zum Verschlüsseln"
                 >
-                <button type="button" class="btn btn-primary" id="start-partner-quiz-btn">
-                    <span aria-hidden="true">🕵️</span> Als Rätsel testen
-                </button>
+                <div class="shift-picker">
+                    <label for="encode-shift-range">Caesar-Schlüssel:</label>
+                    <button type="button" class="btn btn-secondary btn-compact" id="encode-shift-minus">−</button>
+                    <strong id="encode-shift-val">+3</strong>
+                    <button type="button" class="btn btn-secondary btn-compact" id="encode-shift-plus">+</button>
+                </div>
+            </div>
+
+            <div class="encode-preview-row">
+                <span class="encode-step-tag">Zwischen-Buchstaben (nach Caesar):</span>
+                <code class="encode-mid-text" id="encode-mid-text">–</code>
+                <button type="button" class="btn btn-ghost btn-compact" id="toggle-mid-btn">Verstecken</button>
             </div>
 
             <div class="encode-output" id="encode-output"></div>
@@ -184,17 +230,17 @@
             </div>
             <div class="modal-body story-body">
                 <p>
-                    Ein Astronom hat den geheimen Standort eines frisch eingeschlagenen <strong>Meteoriten</strong> entdeckt!
-                    Damit niemand vor ihm dort ist, hat er den Ort mit drei geheimen Gittern verschlüsselt.
+                    Ein Astronom hat den Einschlag eines geheimen <strong>Meteoriten</strong> beobachtet. Damit niemand ihm zuvorkommt,
+                    hat er den Ort <strong>doppelt verschlüsselt</strong>:
                 </p>
                 <blockquote class="quest-quote">
-                    <strong>So funktioniert der Code:</strong><br>
-                    Jeder Buchstabe liegt in einem von drei 3×3-Gittern.<br>
-                    Die <strong>Linien</strong> rund um sein Kästchen ergeben die Form (z. B. hat <strong>E</strong> ein geschlossenes Quadrat <strong>□</strong>).<br>
-                    Stammt der Buchstabe aus dem 2. Gitter, steht ein Punkt (<strong>•</strong>) dabei; aus dem 3. Gitter ein Kreis (<strong>°</strong>).
+                    <strong>Die zwei Verschlüsselungs-Schritte:</strong><br>
+                    1. Zuerst wurden alle Buchstaben mit einer <strong>Caesar-Scheibe</strong> verschoben.<br>
+                    2. Danach wurden diese neuen Buchstaben in die geheimen <strong>Gitter-Zeichen</strong> übersetzt.
                 </blockquote>
                 <p class="story-tip">
-                    <strong>Deine Mission:</strong> Entschlüssle den abgefangenen Standort!
+                    <strong>So arbeitest du hier:</strong><br>
+                    Übe zuerst in den Stufen <strong>1 → 2 → 3</strong>, wie beide Codes funktionieren. Danach bist du bereit, die echte Notiz auf deinem <strong>Arbeitsblatt</strong> zu knacken!
                 </p>
             </div>
             <div class="modal-footer">

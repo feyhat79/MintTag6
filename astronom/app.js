@@ -1,10 +1,8 @@
 (() => {
     "use strict";
 
-    // Die 3 Gitter aus dem Dokument:
-    // Gitter 0 (ohne Punkt): A-I
-    // Gitter 1 (Punkt •):   J-R
-    // Gitter 2 (Kreis °):   S-Z (Zelle 2,2 leer)
+    const ALPHABET = "ABCDEFGHIJKLMNOPQRSTUVWXYZ";
+
     const GRIDS = [
         {
             id: 0,
@@ -41,25 +39,27 @@
         }
     ];
 
-    const MISSIONS = {
-        main: {
-            id: "main",
-            title: "Abgefangener Standort (Original-Notiz)",
-            phrase: "IM KRATER IST ES"
-        },
-        bonus1: {
-            id: "bonus1",
-            title: "Bonus-Notiz 1 (Sternenkarte)",
-            phrase: "BEI DER ALTEN EICHE"
-        },
-        bonus2: {
-            id: "bonus2",
-            title: "Bonus-Notiz 2 (Geheim-Koordinate)",
-            phrase: "NORDLICH VOM TURM"
-        }
+    // Reine Übungssätze (die echte Papier-Aufgabe kommt NICHT vor)
+    const PRACTICE_POOLS = {
+        gitter: [
+            "STERN IM NORDEN",
+            "SUCHE BEI NACHT",
+            "BLICK ZUM MOND"
+        ],
+        caesar: [
+            "IM WALD",
+            "AM SEE",
+            "DER TURM",
+            "BEI NACHT"
+        ],
+        double: [
+            "IM WALD AM SEE",
+            "AM ALTEN TURM",
+            "BEI DER EICHE",
+            "UNTER DEM STEIN"
+        ]
     };
 
-    // Map Buchstabe -> { grid, row, col, walls: { top, right, bottom, left }, marker }
     const LETTER_MAP = new Map();
     GRIDS.forEach((g) => {
         for (let r = 0; r < 3; r++) {
@@ -69,9 +69,6 @@
                 LETTER_MAP.set(ch, {
                     letter: ch,
                     grid: g.id,
-                    gridTitle: g.title,
-                    row: r,
-                    col: c,
                     marker: g.marker,
                     walls: {
                         top: r > 0,
@@ -85,12 +82,19 @@
     });
 
     const state = {
-        tab: "decode", // "decode" | "encode"
-        missionId: "main",
-        phrase: MISSIONS.main.phrase,
-        slots: [], // [{ index, targetLetter, value, status: "neutral"|"correct"|"wrong" }]
-        selectedSlotIdx: 0,
-        filter: "all",
+        tab: "train",
+        stage: "gitter", // "gitter" | "caesar" | "double"
+        poolIndex: { gitter: 0, caesar: 0, double: 0 },
+        plainPhrase: "",
+        caesarShift: 3, // Klartext + shift = Geheimtext
+        midPhrase: "", // Nach Caesar-Verschiebung
+        step1Solved: false,
+        step1Slots: [], // [{ index, target, value, status }]
+        step2Slots: [], // [{ index, target, value, status }]
+        solvedStages: new Set(),
+        wheelShift: 0, // Aktuelle Stellung der drehbaren Caesar-Scheibe (0..25)
+        encodeShift: 3,
+        hideEncodeMid: false,
         theme: "dark"
     };
 
@@ -99,32 +103,47 @@
     const storyBtn = document.getElementById("story-btn");
     const storyModal = document.getElementById("story-modal");
 
-    const tabDecodeBtn = document.getElementById("tab-decode");
+    const tabTrainBtn = document.getElementById("tab-train");
     const tabEncodeBtn = document.getElementById("tab-encode");
-    const decodeViewEl = document.getElementById("decode-view");
+    const trainViewEl = document.getElementById("train-view");
     const encodeViewEl = document.getElementById("encode-view");
 
+    const stageButtons = document.querySelectorAll(".stage-pill");
     const missionTitleEl = document.getElementById("mission-title");
-    const modeButtons = document.querySelectorAll(".mode-pill");
+    const missionDescEl = document.getElementById("mission-desc");
+    const newPuzzleBtn = document.getElementById("new-puzzle-btn");
     const clearInputsBtn = document.getElementById("clear-inputs-btn");
-    const cipherWordsEl = document.getElementById("cipher-words");
-    const checkMsgBtn = document.getElementById("check-msg-btn");
-    const hintBtn = document.getElementById("hint-btn");
-    const matchInfoEl = document.getElementById("match-info");
-    const decodeFeedbackEl = document.getElementById("decode-feedback");
-    const decodeFbIconEl = document.getElementById("decode-fb-icon");
-    const decodeFbTextEl = document.getElementById("decode-fb-text");
 
-    const filterPills = document.querySelectorAll(".filter-pill");
+    const step1CardEl = document.getElementById("step1-card");
+    const step1PillEl = document.getElementById("step1-pill");
+    const step1TitleEl = document.getElementById("step1-title");
+    const step1WordsEl = document.getElementById("step1-words");
+    const checkStep1Btn = document.getElementById("check-step1-btn");
+
+    const step2CardEl = document.getElementById("step2-card");
+    const step2WordsEl = document.getElementById("step2-words");
+    const checkStep2Btn = document.getElementById("check-step2-btn");
+
+    const trainFeedbackEl = document.getElementById("train-feedback");
+    const trainFbIconEl = document.getElementById("train-fb-icon");
+    const trainFbTextEl = document.getElementById("train-fb-text");
+
+    const gridsPanelEl = document.getElementById("grids-panel");
     const gridsTrioEl = document.getElementById("grids-trio");
-    const inspTargetSvgEl = document.getElementById("insp-target-svg");
-    const inspHoverSvgEl = document.getElementById("insp-hover-svg");
-    const inspHoverLetterEl = document.getElementById("insp-hover-letter");
-    const inspExplainEl = document.getElementById("insp-explain");
+
+    const caesarPanelEl = document.getElementById("caesar-panel");
+    const caesarSvgEl = document.getElementById("caesar-svg");
+    const caesarLeftBtn = document.getElementById("caesar-left-btn");
+    const caesarRightBtn = document.getElementById("caesar-right-btn");
+    const caesarReadoutValEl = document.getElementById("caesar-readout-val");
 
     const encodeInputEl = document.getElementById("encode-input");
+    const encodeShiftMinusBtn = document.getElementById("encode-shift-minus");
+    const encodeShiftPlusBtn = document.getElementById("encode-shift-plus");
+    const encodeShiftValEl = document.getElementById("encode-shift-val");
+    const encodeMidTextEl = document.getElementById("encode-mid-text");
+    const toggleMidBtn = document.getElementById("toggle-mid-btn");
     const encodeOutputEl = document.getElementById("encode-output");
-    const startPartnerQuizBtn = document.getElementById("start-partner-quiz-btn");
 
     function applyTheme(theme) {
         state.theme = theme === "light" ? "light" : "dark";
@@ -142,10 +161,10 @@
         }
     }
 
-    function setDecodeFeedback(variant, icon, text) {
-        decodeFeedbackEl.className = `feedback-bar ${variant}`;
-        decodeFbIconEl.textContent = icon;
-        decodeFbTextEl.textContent = text;
+    function setFeedback(variant, icon, text) {
+        trainFeedbackEl.className = `feedback-bar ${variant}`;
+        trainFbIconEl.textContent = icon;
+        trainFbTextEl.textContent = text;
     }
 
     function normalizePhrase(raw) {
@@ -160,12 +179,21 @@
             .trim();
     }
 
-    function createPigpenSvg(letter, size = 38) {
+    function caesarShiftPhrase(phrase, shift) {
+        const s = ((shift % 26) + 26) % 26;
+        return [...phrase].map((ch) => {
+            if (ch === " ") return " ";
+            const idx = ALPHABET.indexOf(ch);
+            if (idx === -1) return ch;
+            return ALPHABET[(idx + s) % 26];
+        }).join("");
+    }
+
+    function createPigpenSvg(letter, size = 36) {
         const info = LETTER_MAP.get(letter);
         if (!info) return "";
 
         const { walls, marker } = info;
-        // Wenn ein Punkt/Kreis rechts daneben sitzt, rücken wir das Kästchen etwas nach links
         const x1 = marker === "none" ? 13 : 8;
         const x2 = marker === "none" ? 35 : 28;
         const y1 = 13;
@@ -190,88 +218,119 @@
         </svg>`;
     }
 
-    function loadPhrase(phrase, title, missionId) {
-        state.missionId = missionId;
-        state.phrase = phrase;
-        missionTitleEl.textContent = title;
-        modeButtons.forEach((b) => b.classList.toggle("active", b.dataset.mission === missionId));
-
-        state.slots = [];
-        let slotIdx = 0;
+    function buildSlots(phrase) {
+        const slots = [];
+        let idx = 0;
         for (const ch of phrase) {
             if (ch !== " ") {
-                state.slots.push({
-                    index: slotIdx++,
+                slots.push({
+                    index: idx++,
                     target: ch,
                     value: "",
                     status: "neutral"
                 });
             }
         }
-        state.selectedSlotIdx = 0;
-
-        setDecodeFeedback("neutral", "🔭", "Wähle ein Geheimzeichen aus und finde die passende Linienform in den 3 Gittern.");
-        renderAllDecode();
+        return slots;
     }
 
-    function renderCipherWords() {
-        cipherWordsEl.innerHTML = "";
+    function pickShiftForPuzzle(idx) {
+        const shifts = [3, 4, 2, 5, 6];
+        return shifts[idx % shifts.length];
+    }
 
-        const activeTarget = state.slots[state.selectedSlotIdx]?.target || null;
-        let sameCount = 0;
-        if (activeTarget) {
-            sameCount = state.slots.filter((s) => s.target === activeTarget).length;
+    function loadStage(stage, advanceExample = false) {
+        state.stage = stage;
+        const pool = PRACTICE_POOLS[stage];
+        if (advanceExample) {
+            state.poolIndex[stage] = (state.poolIndex[stage] + 1) % pool.length;
         }
-        matchInfoEl.textContent = activeTarget
-            ? `Aktives Zeichen kommt ${sameCount}× in dieser Nachricht vor.`
-            : "Tippe ein Zeichen an.";
+        const idx = state.poolIndex[stage];
+        state.plainPhrase = pool[idx];
 
-        const words = state.phrase.split(" ");
+        if (stage === "gitter") {
+            state.caesarShift = 0;
+            state.midPhrase = state.plainPhrase;
+            state.step1Slots = buildSlots(state.plainPhrase);
+            state.step2Slots = [];
+            state.step1Solved = false;
+
+            missionTitleEl.textContent = "Übung 1: Gitter-Code ablesen";
+            missionDescEl.textContent = "Lies jedes Zeichen selbst in den 3 Gittern nach und tippe den Buchstaben ein.";
+            step1PillEl.textContent = "Übung 1";
+            step1TitleEl.textContent = "Entschlüssle die Gitter-Zeichen:";
+            checkStep1Btn.innerHTML = '<span aria-hidden="true">🔍</span> Lösung prüfen';
+            setFeedback("neutral", "🔭", "Achte auf die Wände rund um jeden Buchstaben sowie Punkt (•) und Kreis (°).");
+        } else if (stage === "caesar") {
+            state.caesarShift = pickShiftForPuzzle(idx);
+            state.midPhrase = caesarShiftPhrase(state.plainPhrase, state.caesarShift);
+            state.step1Slots = buildSlots(state.plainPhrase);
+            state.step2Slots = [];
+            state.step1Solved = false;
+            state.wheelShift = 0;
+
+            missionTitleEl.textContent = "Übung 2: Die Caesar-Scheibe";
+            missionDescEl.textContent = "Drehe den inneren Ring der Caesar-Scheibe so lange, bis die Buchstaben ein deutsches Wort ergeben.";
+            step1PillEl.textContent = "Übung 2";
+            step1TitleEl.textContent = "Lies die Geheim-Buchstaben (außen) an der Scheibe ab und tippe den Klartext (innen) ein:";
+            checkStep1Btn.innerHTML = '<span aria-hidden="true">🔍</span> Lösung prüfen';
+            setFeedback("neutral", "⚙️", "Tipp: Stelle die Scheibe ein und teste, welche Buchstaben zusammenpassen!");
+        } else {
+            state.caesarShift = pickShiftForPuzzle(idx + 1);
+            state.midPhrase = caesarShiftPhrase(state.plainPhrase, state.caesarShift);
+            state.step1Slots = buildSlots(state.midPhrase);
+            state.step2Slots = buildSlots(state.plainPhrase);
+            state.step1Solved = false;
+            state.wheelShift = 0;
+
+            missionTitleEl.textContent = "Übung 3: Doppelte Verschlüsselung";
+            missionDescEl.textContent = "Erst die Gitter-Zeichen ablesen – und danach den Buchstabensalat mit der Caesar-Scheibe knacken!";
+            step1PillEl.textContent = "Schritt 1";
+            step1TitleEl.textContent = "Lies zuerst alle Geheimzeichen aus den 3 Gittern ab:";
+            checkStep1Btn.innerHTML = '<span aria-hidden="true">🔍</span> Schritt 1 prüfen';
+            setFeedback("neutral", "🕵️", "Schritt 1: Übersetze alle Gitter-Zeichen. Noch keine Sorge, wenn die Buchstaben komisch aussehen!");
+        }
+
+        renderTrainView();
+    }
+
+    function renderWordInputs(containerEl, phrase, slots, mode, disabledAll) {
+        containerEl.innerHTML = "";
+        const words = phrase.split(" ");
+        const cipherWords = state.midPhrase.split(" ");
         let cursor = 0;
 
-        words.forEach((word) => {
+        words.forEach((word, wIdx) => {
             const wordDiv = document.createElement("div");
             wordDiv.className = "cipher-word";
 
             for (let i = 0; i < word.length; i++) {
-                const slot = state.slots[cursor++];
-                const isActive = slot.index === state.selectedSlotIdx;
-                const isSame = activeTarget && slot.target === activeTarget && !isActive;
-
+                const slot = slots[cursor++];
                 const slotCard = document.createElement("div");
                 slotCard.className = "cipher-slot";
-                if (isActive) slotCard.classList.add("active");
-                if (isSame) slotCard.classList.add("same-symbol");
                 if (slot.status === "correct") slotCard.classList.add("correct");
                 if (slot.status === "wrong") slotCard.classList.add("wrong");
 
-                const symBox = document.createElement("div");
-                symBox.className = "cipher-symbol-box";
-                symBox.innerHTML = createPigpenSvg(slot.target, 38);
+                if (mode === "pigpen") {
+                    const symBox = document.createElement("div");
+                    symBox.className = "cipher-symbol-box";
+                    symBox.innerHTML = createPigpenSvg(cipherWords[wIdx][i], 36);
+                    slotCard.appendChild(symBox);
+                } else {
+                    const badge = document.createElement("div");
+                    badge.className = "caesar-cipher-badge";
+                    badge.textContent = cipherWords[wIdx][i];
+                    slotCard.appendChild(badge);
+                }
 
                 const input = document.createElement("input");
                 input.type = "text";
                 input.maxLength = 1;
                 input.className = "letter-input";
                 input.value = slot.value;
-                input.setAttribute("aria-label", `Geheimzeichen ${slot.index + 1}`);
+                input.disabled = disabledAll;
+                input.setAttribute("aria-label", `Buchstabe ${slot.index + 1}`);
                 input.dataset.slotIndex = String(slot.index);
-
-                slotCard.addEventListener("click", () => {
-                    state.selectedSlotIdx = slot.index;
-                    renderCipherWords();
-                    updateTargetInspector();
-                    const freshInput = cipherWordsEl.querySelector(`input[data-slot-index="${slot.index}"]`);
-                    if (freshInput) freshInput.focus();
-                });
-
-                input.addEventListener("focus", () => {
-                    if (state.selectedSlotIdx !== slot.index) {
-                        state.selectedSlotIdx = slot.index;
-                        updateSlotHighlights();
-                        updateTargetInspector();
-                    }
-                });
 
                 input.addEventListener("input", (e) => {
                     const cleaned = normalizePhrase(e.target.value).replace(/\s/g, "");
@@ -282,92 +341,31 @@
                     slotCard.classList.remove("correct", "wrong");
 
                     if (letter) {
-                        jumpToNextSlot(slot.index);
+                        const next = containerEl.querySelector(`input[data-slot-index="${slot.index + 1}"]`);
+                        if (next && !next.disabled) next.focus();
                     }
                 });
 
                 input.addEventListener("keydown", (e) => {
                     if (e.key === "Backspace" && !slot.value && slot.index > 0) {
-                        state.selectedSlotIdx = slot.index - 1;
-                        renderCipherWords();
-                        const prev = cipherWordsEl.querySelector(`input[data-slot-index="${state.selectedSlotIdx}"]`);
-                        if (prev) prev.focus();
+                        const prev = containerEl.querySelector(`input[data-slot-index="${slot.index - 1}"]`);
+                        if (prev && !prev.disabled) prev.focus();
                     }
                 });
 
-                slotCard.appendChild(symBox);
                 slotCard.appendChild(input);
                 wordDiv.appendChild(slotCard);
             }
 
-            cipherWordsEl.appendChild(wordDiv);
+            containerEl.appendChild(wordDiv);
         });
     }
 
-    function updateSlotHighlights() {
-        const activeTarget = state.slots[state.selectedSlotIdx]?.target || null;
-        const cards = cipherWordsEl.querySelectorAll(".cipher-slot");
-        let sameCount = 0;
-
-        cards.forEach((card, idx) => {
-            const slot = state.slots[idx];
-            const isActive = idx === state.selectedSlotIdx;
-            const isSame = activeTarget && slot.target === activeTarget && !isActive;
-            card.classList.toggle("active", isActive);
-            card.classList.toggle("same-symbol", Boolean(isSame));
-            if (activeTarget && slot.target === activeTarget) sameCount++;
-        });
-
-        matchInfoEl.textContent = activeTarget
-            ? `Aktives Zeichen kommt ${sameCount}× in dieser Nachricht vor.`
-            : "";
-    }
-
-    function jumpToNextSlot(fromIdx) {
-        const nextEmpty = state.slots.find((s, idx) => idx > fromIdx && !s.value)
-            || state.slots.find((s) => !s.value);
-        if (nextEmpty) {
-            state.selectedSlotIdx = nextEmpty.index;
-        } else if (fromIdx + 1 < state.slots.length) {
-            state.selectedSlotIdx = fromIdx + 1;
-        }
-        renderCipherWords();
-        updateTargetInspector();
-        const input = cipherWordsEl.querySelector(`input[data-slot-index="${state.selectedSlotIdx}"]`);
-        if (input) input.focus();
-    }
-
-    function updateTargetInspector() {
-        const target = state.slots[state.selectedSlotIdx]?.target;
-        inspTargetSvgEl.innerHTML = target ? createPigpenSvg(target, 46) : "";
-    }
-
-    function previewGridCell(letter) {
-        if (!letter) {
-            inspHoverSvgEl.innerHTML = "";
-            inspHoverLetterEl.textContent = "–";
-            return;
-        }
-        const info = LETTER_MAP.get(letter);
-        inspHoverSvgEl.innerHTML = createPigpenSvg(letter, 46);
-        inspHoverLetterEl.textContent = letter + (info.marker === "dot" ? " •" : info.marker === "ring" ? " °" : "");
-        const wallNames = [];
-        if (info.walls.top) wallNames.push("oben");
-        if (info.walls.right) wallNames.push("rechts");
-        if (info.walls.bottom) wallNames.push("unten");
-        if (info.walls.left) wallNames.push("links");
-        const markTxt = info.marker === "none" ? "ohne Punkt" : info.marker === "dot" ? "mit Punkt •" : "mit Kreis °";
-        inspExplainEl.textContent = `${letter} hat Wände ${wallNames.join(", ")} (${markTxt}).`;
-    }
-
-    function renderGrids() {
+    function renderStaticGrids() {
         gridsTrioEl.innerHTML = "";
         GRIDS.forEach((grid) => {
             const card = document.createElement("div");
             card.className = "pigpen-grid-card";
-            if (state.filter !== "all" && Number(state.filter) !== grid.id) {
-                card.classList.add("dimmed");
-            }
 
             const title = document.createElement("div");
             title.className = "grid-card-title";
@@ -380,35 +378,21 @@
             for (let r = 0; r < 3; r++) {
                 for (let c = 0; c < 3; c++) {
                     const ch = grid.rows[r][c];
-                    const btn = document.createElement("button");
-                    btn.type = "button";
-                    btn.className = "grid-cell";
-                    if (r > 0) btn.classList.add("wall-top");
-                    if (c < 2) btn.classList.add("wall-right");
-                    if (r < 2) btn.classList.add("wall-bottom");
-                    if (c > 0) btn.classList.add("wall-left");
+                    const cell = document.createElement("div");
+                    cell.className = "grid-cell";
+                    if (r > 0) cell.classList.add("wall-top");
+                    if (c < 2) cell.classList.add("wall-right");
+                    if (r < 2) cell.classList.add("wall-bottom");
+                    if (c > 0) cell.classList.add("wall-left");
 
                     if (!ch) {
-                        btn.classList.add("empty-cell");
-                        btn.disabled = true;
-                        btn.textContent = "·";
+                        cell.classList.add("empty-cell");
+                        cell.textContent = "·";
                     } else {
-                        btn.innerHTML = `<span>${ch}</span>` +
+                        cell.innerHTML = `<span>${ch}</span>` +
                             (grid.markerLabel ? `<span class="cell-marker">${grid.markerLabel}</span>` : "");
-                        btn.setAttribute("aria-label", `Buchstabe ${ch} aus ${grid.title}`);
-
-                        btn.addEventListener("mouseenter", () => previewGridCell(ch));
-                        btn.addEventListener("focus", () => previewGridCell(ch));
-                        btn.addEventListener("click", () => {
-                            previewGridCell(ch);
-                            const activeSlot = state.slots[state.selectedSlotIdx];
-                            if (!activeSlot) return;
-                            activeSlot.value = ch;
-                            activeSlot.status = "neutral";
-                            jumpToNextSlot(activeSlot.index);
-                        });
                     }
-                    ttt.appendChild(btn);
+                    ttt.appendChild(cell);
                 }
             }
 
@@ -417,89 +401,252 @@
         });
     }
 
-    function renderAllDecode() {
-        renderCipherWords();
-        renderGrids();
-        updateTargetInspector();
+    function buildCaesarWheelSvg() {
+        const cx = 160;
+        const cy = 160;
+        const step = 360 / 26;
+
+        let outerLetters = "";
+        let innerLetters = "";
+        let outerTicks = "";
+        let innerTicks = "";
+
+        for (let i = 0; i < 26; i++) {
+            const angleDeg = i * step;
+            const rad = (angleDeg - 90) * (Math.PI / 180);
+            const tickRad = (angleDeg - step / 2 - 90) * (Math.PI / 180);
+
+            // Outer ring letter (Geheimtext)
+            const ox = cx + 131 * Math.cos(rad);
+            const oy = cy + 131 * Math.sin(rad);
+            outerLetters += `<text x="${ox.toFixed(1)}" y="${oy.toFixed(1)}" text-anchor="middle" dominant-baseline="central" font-size="13" font-weight="800" fill="#93c5fd" transform="rotate(${angleDeg.toFixed(1)} ${ox.toFixed(1)} ${oy.toFixed(1)})">${ALPHABET[i]}</text>`;
+
+            const tx1 = cx + 114 * Math.cos(tickRad);
+            const ty1 = cy + 114 * Math.sin(tickRad);
+            const tx2 = cx + 148 * Math.cos(tickRad);
+            const ty2 = cy + 148 * Math.sin(tickRad);
+            outerTicks += `<line x1="${tx1.toFixed(1)}" y1="${ty1.toFixed(1)}" x2="${tx2.toFixed(1)}" y2="${ty2.toFixed(1)}" stroke="rgba(147,197,253,0.28)" stroke-width="1"/>`;
+
+            // Inner ring letter (Klartext)
+            const ix = cx + 91 * Math.cos(rad);
+            const iy = cy + 91 * Math.sin(rad);
+            innerLetters += `<text x="${ix.toFixed(1)}" y="${iy.toFixed(1)}" text-anchor="middle" dominant-baseline="central" font-size="13" font-weight="900" fill="#1b1407" transform="rotate(${angleDeg.toFixed(1)} ${ix.toFixed(1)} ${iy.toFixed(1)})">${ALPHABET[i]}</text>`;
+
+            const ix1 = cx + 70 * Math.cos(tickRad);
+            const iy1 = cy + 70 * Math.sin(tickRad);
+            const ix2 = cx + 110 * Math.cos(tickRad);
+            const iy2 = cy + 110 * Math.sin(tickRad);
+            innerTicks += `<line x1="${ix1.toFixed(1)}" y1="${iy1.toFixed(1)}" x2="${ix2.toFixed(1)}" y2="${iy2.toFixed(1)}" stroke="rgba(27,20,7,0.25)" stroke-width="1"/>`;
+        }
+
+        caesarSvgEl.innerHTML = `
+            <circle cx="${cx}" cy="${cy}" r="150" fill="#18243e" stroke="#60a5fa" stroke-width="2.5"/>
+            <circle cx="${cx}" cy="${cy}" r="113" fill="none" stroke="rgba(147,197,253,0.35)" stroke-width="1.5"/>
+            ${outerTicks}
+            ${outerLetters}
+            <g id="caesar-inner-ring">
+                <circle cx="${cx}" cy="${cy}" r="110" fill="#f7c454" stroke="#b4690e" stroke-width="2.5"/>
+                <circle cx="${cx}" cy="${cy}" r="70" fill="#151f36" stroke="#b4690e" stroke-width="2"/>
+                ${innerTicks}
+                ${innerLetters}
+            </g>
+            <circle cx="${cx}" cy="${cy}" r="64" fill="#10182b" stroke="rgba(247,196,84,0.45)" stroke-width="1.5"/>
+            <text x="${cx}" y="${cy - 14}" text-anchor="middle" font-size="10.5" font-weight="700" fill="#9fb0d0">AUSSEN = GEHEIM</text>
+            <text x="${cx}" y="${cy + 3}" text-anchor="middle" font-size="10.5" font-weight="700" fill="#f7c454">INNEN = KLAR</text>
+            <text id="caesar-center-pair" x="${cx}" y="${cy + 25}" text-anchor="middle" font-size="14" font-weight="900" fill="#f3f6fc">A = A</text>
+        `;
     }
 
-    function checkSolution() {
-        let allFilled = true;
-        let correctCount = 0;
+    function updateCaesarWheelVisual() {
+        const innerRing = document.getElementById("caesar-inner-ring");
+        const centerPair = document.getElementById("caesar-center-pair");
+        const s = ((state.wheelShift % 26) + 26) % 26;
+        const deg = s * (360 / 26);
 
-        state.slots.forEach((slot) => {
-            if (!slot.value) {
-                allFilled = false;
-                slot.status = "neutral";
-            } else if (slot.value === slot.target) {
-                slot.status = "correct";
-                correctCount++;
-            } else {
-                slot.status = "wrong";
+        if (innerRing) {
+            innerRing.setAttribute("transform", `rotate(${deg.toFixed(2)} 160 160)`);
+        }
+        const cipherChar = ALPHABET[s];
+        if (centerPair) {
+            centerPair.textContent = `Klar A → ${cipherChar}`;
+        }
+        caesarReadoutValEl.textContent = `Klar A = Geheim ${cipherChar} (+${s})`;
+    }
+
+    function setupCaesarWheelDrag() {
+        let dragging = false;
+        let startAngle = 0;
+        let startShift = 0;
+
+        function getPointerAngle(clientX, clientY) {
+            const rect = caesarSvgEl.getBoundingClientRect();
+            const cx = rect.left + rect.width / 2;
+            const cy = rect.top + rect.height / 2;
+            return Math.atan2(clientY - cy, clientX - cx) * (180 / Math.PI);
+        }
+
+        caesarSvgEl.addEventListener("pointerdown", (e) => {
+            dragging = true;
+            startAngle = getPointerAngle(e.clientX, e.clientY);
+            startShift = state.wheelShift;
+            if (typeof caesarSvgEl.setPointerCapture === "function") {
+                caesarSvgEl.setPointerCapture(e.pointerId);
             }
         });
 
-        renderCipherWords();
+        caesarSvgEl.addEventListener("pointermove", (e) => {
+            if (!dragging) return;
+            const currentAngle = getPointerAngle(e.clientX, e.clientY);
+            let diff = currentAngle - startAngle;
+            if (diff > 180) diff -= 360;
+            if (diff < -180) diff += 360;
+            const steps = Math.round(diff / (360 / 26));
+            state.wheelShift = (((startShift + steps) % 26) + 26) % 26;
+            updateCaesarWheelVisual();
+        });
 
-        if (correctCount === state.slots.length) {
-            setDecodeFeedback(
-                "success",
-                "🎉",
-                `Volltreffer! Die entschlüsselte Geheimbotschaft lautet: „${state.phrase}“!`
-            );
-        } else if (!allFilled) {
-            setDecodeFeedback(
-                "warning",
-                "🕵️",
-                `Es fehlen noch Buchstaben (${correctCount} von ${state.slots.length} bisher richtig). Grüne Felder stimmen schon!`
-            );
+        const stopDrag = () => { dragging = false; };
+        caesarSvgEl.addEventListener("pointerup", stopDrag);
+        caesarSvgEl.addEventListener("pointercancel", stopDrag);
+    }
+
+    function renderStageBar() {
+        stageButtons.forEach((btn) => {
+            const st = btn.dataset.stage;
+            btn.classList.toggle("active", st === state.stage);
+            btn.classList.toggle("solved", state.solvedStages.has(st));
+            const badge = document.getElementById(`badge-${st}`);
+            if (badge) {
+                const defaultNum = st === "gitter" ? "1" : st === "caesar" ? "2" : "3";
+                badge.textContent = state.solvedStages.has(st) ? "✓" : defaultNum;
+            }
+        });
+    }
+
+    function renderTrainView() {
+        renderStageBar();
+
+        const showGrids = state.stage === "gitter" || state.stage === "double";
+        const showCaesar = state.stage === "caesar" || state.stage === "double";
+        gridsPanelEl.classList.toggle("hidden", !showGrids);
+        caesarPanelEl.classList.toggle("hidden", !showCaesar);
+
+        if (state.stage === "gitter") {
+            renderWordInputs(step1WordsEl, state.plainPhrase, state.step1Slots, "pigpen", false);
+            step2CardEl.classList.add("hidden");
+        } else if (state.stage === "caesar") {
+            renderWordInputs(step1WordsEl, state.plainPhrase, state.step1Slots, "caesar", false);
+            step2CardEl.classList.add("hidden");
         } else {
-            setDecodeFeedback(
+            renderWordInputs(step1WordsEl, state.midPhrase, state.step1Slots, "pigpen", state.step1Solved);
+            step2CardEl.classList.toggle("hidden", !state.step1Solved);
+            if (state.step1Solved) {
+                renderWordInputs(step2WordsEl, state.plainPhrase, state.step2Slots, "caesar", false);
+            }
+        }
+
+        updateCaesarWheelVisual();
+    }
+
+    function checkSlots(slots, containerEl, phraseToShowOnSuccess) {
+        const allFilled = slots.every((s) => Boolean(s.value));
+        if (!allFilled) {
+            const filledCount = slots.filter((s) => Boolean(s.value)).length;
+            setFeedback(
                 "warning",
-                "⚠️",
-                `${correctCount} von ${state.slots.length} Buchstaben stimmen. Prüfe die rot markierten Felder noch einmal in den Gittern!`
+                "✏️",
+                `Bitte fülle zuerst alle Felder aus (bisher ${filledCount} von ${slots.length}).`
+            );
+            return false;
+        }
+
+        let correctCount = 0;
+        slots.forEach((s) => {
+            if (s.value === s.target) {
+                s.status = "correct";
+                correctCount++;
+            } else {
+                s.status = "wrong";
+            }
+        });
+
+        const cards = containerEl.querySelectorAll(".cipher-slot");
+        cards.forEach((card, idx) => {
+            const st = slots[idx]?.status;
+            card.classList.toggle("correct", st === "correct");
+            card.classList.toggle("wrong", st === "wrong");
+        });
+
+        if (correctCount === slots.length) {
+            return true;
+        }
+
+        setFeedback(
+            "warning",
+            "⚠️",
+            `${correctCount} von ${slots.length} Buchstaben stimmen schon. Prüfe die rot markierten Felder noch einmal!`
+        );
+        return false;
+    }
+
+    function handleCheckStep1() {
+        const ok = checkSlots(state.step1Slots, step1WordsEl, state.plainPhrase);
+        if (!ok) return;
+
+        if (state.stage === "gitter") {
+            state.solvedStages.add("gitter");
+            renderStageBar();
+            setFeedback("success", "🎉", `Super! „${state.plainPhrase}“ stimmt genau. Weiter geht es mit Stufe 2 (Caesar-Scheibe)!`);
+        } else if (state.stage === "caesar") {
+            state.solvedStages.add("caesar");
+            renderStageBar();
+            setFeedback("success", "🎉", `Klasse! „${state.plainPhrase}“ mit Verschiebung +${state.caesarShift} geknackt! Probiere jetzt Stufe 3 (Doppel-Code).`);
+        } else {
+            state.step1Solved = true;
+            renderTrainView();
+            setFeedback(
+                "success",
+                "✨",
+                `Schritt 1 stimmt („${state.midPhrase}“)! Aber das ist noch Kauderwelsch – knacke jetzt Schritt 2 mit der Caesar-Scheibe!`
             );
         }
     }
 
-    function giveHint() {
-        const candidate = state.slots.find((s) => s.value !== s.target);
-        if (!candidate) {
-            setDecodeFeedback("success", "✨", "Du hast bereits alle Buchstaben richtig gelöst!");
-            return;
-        }
-        candidate.value = candidate.target;
-        candidate.status = "correct";
-        state.selectedSlotIdx = candidate.index;
+    function handleCheckStep2() {
+        const ok = checkSlots(state.step2Slots, step2WordsEl, state.plainPhrase);
+        if (!ok) return;
 
-        const info = LETTER_MAP.get(candidate.target);
-        previewGridCell(candidate.target);
-        setDecodeFeedback(
-            "neutral",
-            "💡",
-            `Tipp: Zeichen #${candidate.index + 1} ist „${candidate.target}“ (aus ${info.gridTitle}).`
+        state.solvedStages.add("double");
+        renderStageBar();
+        setFeedback(
+            "success",
+            "🏆",
+            `Doppel-Code geknackt! Die Nachricht lautet „${state.plainPhrase}“ (Caesar +${state.caesarShift}). Jetzt bist du bereit für das Arbeitsblatt!`
         );
-        renderCipherWords();
-        updateTargetInspector();
     }
 
     function renderEncodePreview() {
         const clean = normalizePhrase(encodeInputEl.value);
-        encodeOutputEl.innerHTML = "";
+        encodeShiftValEl.textContent = `+${state.encodeShift}`;
 
         if (!clean) {
-            encodeOutputEl.innerHTML = '<span style="color: var(--text-muted); font-size: 0.9rem;">Tippe oben Buchstaben (A–Z) ein, um deine Geheimschrift zu sehen.</span>';
+            encodeMidTextEl.textContent = "–";
+            encodeOutputEl.innerHTML = '<span style="color: var(--text-muted); font-size: 0.9rem;">Tippe oben Buchstaben (A–Z) ein, um deine doppelt verschlüsselte Geheimschrift zu erzeugen.</span>';
             return;
         }
 
-        const words = clean.split(" ");
+        const shifted = caesarShiftPhrase(clean, state.encodeShift);
+        encodeMidTextEl.textContent = state.hideEncodeMid ? "••• (versteckt)" : shifted;
+
+        encodeOutputEl.innerHTML = "";
+        const words = shifted.split(" ");
         words.forEach((word) => {
             const wordWrap = document.createElement("div");
             wordWrap.className = "cipher-word";
             for (const ch of word) {
                 const card = document.createElement("div");
                 card.className = "encode-char-card";
-                card.innerHTML = `${createPigpenSvg(ch, 38)}<span class="encode-char-label">${ch}</span>`;
+                card.innerHTML = createPigpenSvg(ch, 40);
                 wordWrap.appendChild(card);
             }
             encodeOutputEl.appendChild(wordWrap);
@@ -508,13 +655,13 @@
 
     function switchTab(tab) {
         state.tab = tab;
-        const isDecode = tab === "decode";
-        tabDecodeBtn.classList.toggle("active", isDecode);
-        tabDecodeBtn.setAttribute("aria-selected", String(isDecode));
-        tabEncodeBtn.classList.toggle("active", !isDecode);
-        tabEncodeBtn.setAttribute("aria-selected", String(!isDecode));
-        decodeViewEl.classList.toggle("hidden", !isDecode);
-        encodeViewEl.classList.toggle("hidden", isDecode);
+        const isTrain = tab === "train";
+        tabTrainBtn.classList.toggle("active", isTrain);
+        tabTrainBtn.setAttribute("aria-selected", String(isTrain));
+        tabEncodeBtn.classList.toggle("active", !isTrain);
+        tabEncodeBtn.setAttribute("aria-selected", String(!isTrain));
+        trainViewEl.classList.toggle("hidden", !isTrain);
+        encodeViewEl.classList.toggle("hidden", isTrain);
     }
 
     function setupModals() {
@@ -545,51 +692,54 @@
             applyTheme(state.theme === "dark" ? "light" : "dark");
         });
 
-        tabDecodeBtn.addEventListener("click", () => switchTab("decode"));
+        tabTrainBtn.addEventListener("click", () => switchTab("train"));
         tabEncodeBtn.addEventListener("click", () => switchTab("encode"));
 
-        modeButtons.forEach((btn) => {
-            btn.addEventListener("click", () => {
-                const m = MISSIONS[btn.dataset.mission];
-                if (m) loadPhrase(m.phrase, m.title, m.id);
-            });
+        stageButtons.forEach((btn) => {
+            btn.addEventListener("click", () => loadStage(btn.dataset.stage, false));
         });
 
-        filterPills.forEach((pill) => {
-            pill.addEventListener("click", () => {
-                state.filter = pill.dataset.filter;
-                filterPills.forEach((p) => p.classList.toggle("active", p === pill));
-                renderGrids();
-            });
-        });
-
+        newPuzzleBtn.addEventListener("click", () => loadStage(state.stage, true));
         clearInputsBtn.addEventListener("click", () => {
-            state.slots.forEach((s) => {
-                s.value = "";
-                s.status = "neutral";
-            });
-            state.selectedSlotIdx = 0;
-            setDecodeFeedback("neutral", "🔭", "Felder geleert. Starte von vorn!");
-            renderCipherWords();
-            updateTargetInspector();
+            state.step1Slots.forEach((s) => { s.value = ""; s.status = "neutral"; });
+            state.step2Slots.forEach((s) => { s.value = ""; s.status = "neutral"; });
+            state.step1Solved = false;
+            setFeedback("neutral", "🔭", "Felder geleert. Starte von vorn!");
+            renderTrainView();
         });
 
-        checkMsgBtn.addEventListener("click", checkSolution);
-        hintBtn.addEventListener("click", giveHint);
+        checkStep1Btn.addEventListener("click", handleCheckStep1);
+        checkStep2Btn.addEventListener("click", handleCheckStep2);
+
+        caesarLeftBtn.addEventListener("click", () => {
+            state.wheelShift = (state.wheelShift + 25) % 26;
+            updateCaesarWheelVisual();
+        });
+        caesarRightBtn.addEventListener("click", () => {
+            state.wheelShift = (state.wheelShift + 1) % 26;
+            updateCaesarWheelVisual();
+        });
 
         encodeInputEl.addEventListener("input", renderEncodePreview);
-        startPartnerQuizBtn.addEventListener("click", () => {
-            const clean = normalizePhrase(encodeInputEl.value);
-            if (!clean) {
-                encodeInputEl.focus();
-                return;
-            }
-            switchTab("decode");
-            loadPhrase(clean, "Partner-Rätsel (Eigene Notiz)", "custom");
+        encodeShiftMinusBtn.addEventListener("click", () => {
+            state.encodeShift = (state.encodeShift + 25) % 26;
+            renderEncodePreview();
+        });
+        encodeShiftPlusBtn.addEventListener("click", () => {
+            state.encodeShift = (state.encodeShift + 1) % 26;
+            renderEncodePreview();
+        });
+        toggleMidBtn.addEventListener("click", () => {
+            state.hideEncodeMid = !state.hideEncodeMid;
+            toggleMidBtn.textContent = state.hideEncodeMid ? "Anzeigen" : "Verstecken";
+            renderEncodePreview();
         });
 
+        renderStaticGrids();
+        buildCaesarWheelSvg();
+        setupCaesarWheelDrag();
         setupModals();
-        loadPhrase(MISSIONS.main.phrase, MISSIONS.main.title, "main");
+        loadStage("gitter", false);
         renderEncodePreview();
     }
 
