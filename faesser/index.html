@@ -1,0 +1,155 @@
+<!DOCTYPE html>
+<html lang="de">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
+    <title>Das vergiftete Fass – Vorkoster-Simulator</title>
+    <link rel="stylesheet" href="style.css">
+</head>
+<body>
+    <div class="cellar-glow" aria-hidden="true"></div>
+
+    <div class="app-shell">
+        <header class="topbar">
+            <div class="brand">
+                <div class="brand-icon" aria-hidden="true">
+                    <svg viewBox="0 0 36 36" width="32" height="32">
+                        <rect x="6" y="7" width="24" height="22" rx="6" fill="#5c3a1e" stroke="#e6ab42" stroke-width="2"/>
+                        <line x1="6" y1="13" x2="30" y2="13" stroke="#e6ab42" stroke-width="2"/>
+                        <line x1="6" y1="23" x2="30" y2="23" stroke="#e6ab42" stroke-width="2"/>
+                        <circle cx="18" cy="18" r="2.6" fill="#f7c454"/>
+                    </svg>
+                </div>
+                <div class="brand-text">
+                    <h1>Das vergiftete Fass</h1>
+                    <p class="subtitle">Erstelle einen Trink-Plan, der jedes Fass eindeutig verrät</p>
+                </div>
+            </div>
+
+            <div class="topbar-actions">
+                <a href="../index.html" class="btn btn-secondary btn-compact" style="text-decoration:none;">← Stationen</a>
+                <button type="button" class="btn btn-secondary btn-compact" id="theme-btn" aria-label="Farbschema wechseln">
+                    <span aria-hidden="true">☀️</span> Hell
+                </button>
+                <button type="button" class="btn btn-secondary btn-compact" id="story-btn">
+                    <span aria-hidden="true">📖</span> Auftrag
+                </button>
+            </div>
+        </header>
+
+        <main class="workspace">
+            <!-- Trink-Plan-Matrix -->
+            <section class="panel matrix-panel" aria-label="Trink-Plan">
+                <div class="panel-header">
+                    <div>
+                        <h2 id="matrix-title">Trink-Plan: 8 Fässer &amp; 3 Diener</h2>
+                        <p class="matrix-hint">Tippe auf ein Feld, damit ein Diener einen Tropfen aus diesem Fass probiert (<span aria-hidden="true">🍷</span>).</p>
+                    </div>
+                    <div class="header-tools">
+                        <div class="mode-switch" role="group" aria-label="Variante wählen">
+                            <button type="button" class="mode-pill active" id="mode-main-btn" data-mode="main">8 Fässer · 3 Diener</button>
+                            <button type="button" class="mode-pill" id="mode-simple-btn" data-mode="simple">Vereinfacht: 4 Fässer · 2 Diener</button>
+                        </div>
+                        <button type="button" class="btn btn-ghost btn-compact" id="clear-plan-btn">
+                            <span aria-hidden="true">🗑️</span> Plan leeren
+                        </button>
+                    </div>
+                </div>
+
+                <div class="table-scroll">
+                    <table class="plan-table" id="plan-table">
+                        <!-- Per JS erzeugt -->
+                    </table>
+                </div>
+
+                <div class="actions-bar">
+                    <button type="button" class="btn btn-primary" id="simulate-btn">
+                        <span aria-hidden="true">⏳</span> 4 Tage vorspulen
+                    </button>
+                </div>
+            </section>
+
+            <!-- Ergebnis-Bereich -->
+            <section class="bottom-grid">
+                <div class="bottom-left-col">
+                    <div class="panel result-panel" aria-live="polite">
+                        <div class="result-banner neutral" id="result-banner">
+                            <span class="result-icon" id="result-icon">🍷</span>
+                            <div class="result-copy">
+                                <strong id="result-title">Erstelle deinen Trink-Plan!</strong>
+                                <p id="result-desc">
+                                    Wähle oben aus, welcher Diener aus welchen Fässern probiert. Spule dann 4 Tage vor, um deinen Plan zu testen!
+                                </p>
+                            </div>
+                        </div>
+
+                        <div class="guess-area hidden" id="guess-area">
+                            <div class="guess-header">
+                                <h3>Welches Fass war vergiftet?</h3>
+                                <span class="day-counter" id="day-counter">Tag 4: Auswertung!</span>
+                            </div>
+                            <div class="servant-results" id="servant-results"></div>
+                            <p class="guess-prompt">Schau in deine Tabelle und tippe auf das passende Fass:</p>
+                            <div class="barrel-pick-grid" id="barrel-pick-grid"></div>
+                        </div>
+                    </div>
+
+                    <div class="tip-box">
+                        <span class="tip-icon-badge" aria-hidden="true">💡</span>
+                        <div class="tip-content">
+                            <strong class="tip-heading">Wichtiger Denk-Tipp</strong>
+                            <p>
+                                Jedes Fass (jede Spalte) braucht ein <strong>eigenes Muster</strong> – und ein Fass darf auch <strong>ohne</strong> Vorkoster bleiben!
+                            </p>
+                        </div>
+                    </div>
+                </div>
+
+                <aside class="panel tip-panel" aria-label="Hilfe und Ziel">
+                    <h3>Dein Ziel</h3>
+                    <p class="tip-text" id="goal-text">
+                        Erstelle einen Trinkplan für die <strong>8 Fässer und 3 Diener</strong>, bei dem du nach <strong>4 Tagen immer sicher weißt</strong>, welches Fass vergiftet ist!
+                    </p>
+                    <div class="progress-summary" id="progress-summary">
+                        <span class="progress-label">Prüfung:</span>
+                        <strong id="status-badge">Noch offen</strong>
+                    </div>
+                </aside>
+            </section>
+        </main>
+    </div>
+
+    <!-- Modal: Auftrag -->
+    <div class="modal-backdrop hidden" id="story-modal" role="dialog" aria-modal="true" aria-labelledby="story-modal-title">
+        <div class="modal-card">
+            <div class="modal-header">
+                <h2 id="story-modal-title">👑 Das vergiftete Fass</h2>
+                <button type="button" class="icon-close" data-close-modal="story-modal" aria-label="Schließen">✕</button>
+            </div>
+            <div class="modal-body story-body">
+                <p>
+                    Ein König feiert in genau <strong>4 Tagen</strong> ein großes Fest. Doch kurz vorher erfährt er, dass
+                    <strong>genau eines seiner Weinfässer vergiftet</strong> wurde!
+                </p>
+                <p>
+                    Das Gift wirkt erst <strong>genau 4 Tage</strong> nach dem Trinken – wer auch nur einen winzigen Tropfen probiert,
+                    bekommt pünktlich am 4. Tag einen deutlichen Ausschlag (<span aria-hidden="true">🤢</span>).
+                </p>
+                <blockquote class="king-quest">
+                    <strong>Der Trick &amp; dein Auftrag:</strong><br>
+                    Ein Diener darf aus <strong>mehreren Fässern</strong> jeweils einen Tropfen probieren!<br>
+                    Erstelle für die <strong>8 Fässer und 3 Diener</strong> einen Trinkplan, mit dem du nach 4 Tagen <strong>bei jedem beliebigen Fass</strong> sofort erkennst, welches vergiftet war.
+                </blockquote>
+                <p class="story-tip">
+                    <em>Tipp:</em> Achte darauf, dass jede Fass-Spalte in deinem Plan ein eigenes, unverwechselbares Muster hat!
+                </p>
+            </div>
+            <div class="modal-footer">
+                <button type="button" class="btn btn-primary" data-close-modal="story-modal">Los geht’s!</button>
+            </div>
+        </div>
+    </div>
+
+    <script defer src="app.js"></script>
+</body>
+</html>

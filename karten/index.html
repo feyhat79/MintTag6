@@ -1,0 +1,182 @@
+<!DOCTYPE html>
+<html lang="de">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
+    <title>Die magische Kartensortierung – Pivot-Simulator</title>
+    <link rel="stylesheet" href="style.css">
+</head>
+<body>
+    <div class="magic-glow" aria-hidden="true"></div>
+
+    <div class="app-shell">
+        <header class="topbar">
+            <div class="brand">
+                <div class="brand-icon" aria-hidden="true">
+                    <svg viewBox="0 0 36 36" width="32" height="32">
+                        <rect x="6" y="4" width="18" height="24" rx="3.5" fill="#232946" stroke="#f7c454" stroke-width="1.8" transform="rotate(-10 15 16)"/>
+                        <rect x="13" y="7" width="18" height="24" rx="3.5" fill="#2f3761" stroke="#f7c454" stroke-width="1.8" transform="rotate(8 22 19)"/>
+                        <path d="M22 14 L23.4 17.4 L27 17.8 L24.2 20.1 L25 23.6 L22 21.7 L19 23.6 L19.8 20.1 L17 17.8 L20.6 17.4 Z" fill="#f7c454"/>
+                    </svg>
+                </div>
+                <div class="brand-text">
+                    <h1>Die magische Kartensortierung</h1>
+                    <p class="subtitle">Übe und verstehe die Pivot-Methode – die Prüfung legst du danach mit echten Karten!</p>
+                </div>
+            </div>
+
+            <div class="topbar-actions">
+                <a href="../index.html" class="btn btn-secondary btn-compact" style="text-decoration:none;">← Stationen</a>
+                <button type="button" class="btn btn-secondary btn-compact" id="theme-btn" aria-label="Farbschema wechseln">
+                    <span aria-hidden="true">☀️</span> Hell
+                </button>
+                <button type="button" class="btn btn-secondary btn-compact" id="story-btn">
+                    <span aria-hidden="true">📖</span> Auftrag
+                </button>
+            </div>
+        </header>
+
+        <main class="workspace">
+            <!-- Linke Hauptfläche: Ein einziger Zaubertisch -->
+            <section class="workbench-panel" aria-label="Zaubertisch">
+                <div class="panel-header">
+                    <div>
+                        <h2 id="board-title">Einstieg: Übungs-Stapel (5 Karten)</h2>
+                        <p class="board-hint" id="board-hint">
+                            Startreihenfolge: <strong>3 – 1 – 5 – 2 – 4</strong>
+                        </p>
+                    </div>
+                    <div class="header-tools">
+                        <div class="mode-switch" role="group" aria-label="Übungs-Stapel wählen">
+                            <button type="button" class="mode-pill active" data-mode="simple5">Einstieg (5)</button>
+                            <button type="button" class="mode-pill" data-mode="medium7">Übung (7)</button>
+                            <button type="button" class="mode-pill" data-mode="random10">Zufall (10)</button>
+                        </div>
+                        <button type="button" class="btn btn-ghost btn-compact" id="reset-btn">
+                            <span aria-hidden="true">🔄</span> Neu mischen / Start
+                        </button>
+                    </div>
+                </div>
+
+                <!-- Aktueller Schritt-Hinweis direkt über dem Tisch -->
+                <div class="step-banner" id="step-banner">
+                    <span class="step-badge" id="step-badge">Durchlauf 1 · Schritt 1</span>
+                    <span class="step-instruction" id="step-instruction">
+                        Tippe auf die oberste Karte des markierten Stapels auf dem Tisch, um sie als Pivot zu legen.
+                    </span>
+                </div>
+
+                <!-- Der eine Zaubertisch: hier liegen die Stapel & werden direkt an Ort und Stelle bearbeitet -->
+                <div class="table-surface" id="table-surface">
+                    <div class="table-header-row">
+                        <span class="table-label">Zaubertisch (von links nach rechts)</span>
+                        <span class="table-legend">
+                            <span><span class="legend-dot done"></span> fertig sortiert</span>
+                            <span><span class="legend-dot active"></span> aktiver Stapel</span>
+                        </span>
+                    </div>
+
+                    <div class="magic-table" id="magic-table" aria-label="Kartenstapel auf dem Tisch"></div>
+
+                    <!-- Abschluss-Bereich nach erfolgreichem Durchspielen -->
+                    <div class="complete-stage hidden" id="complete-stage">
+                        <div class="complete-icon" aria-hidden="true">🪄</div>
+                        <h3>Übungs-Stapel sortiert – Verfahren gemeistert!</h3>
+                        <p id="complete-summary">
+                            Jeder Stapel besteht nur noch aus einer einzelnen Karte.
+                        </p>
+                        <div class="quiz-box" id="quiz-box">
+                            <p class="quiz-question">
+                                <strong>Kurzer Check:</strong> Wie viele Durchläufe hat dieser Übungs-Stapel gebraucht?
+                            </p>
+                            <div class="quiz-input-row">
+                                <input type="number" id="quiz-answer-input" min="1" max="30" inputmode="numeric" placeholder="Anzahl">
+                                <button type="button" class="btn btn-primary" id="quiz-check-btn">Prüfen</button>
+                            </div>
+                            <p class="quiz-feedback" id="quiz-feedback" aria-live="polite"></p>
+                            <p class="exam-ready-hint">
+                                Alles klar verstanden? Dann leg die eigentliche Prüfung jetzt mit den <strong>echten Karten</strong> auf deinem Tisch!
+                            </p>
+                        </div>
+                    </div>
+                </div>
+
+                <div class="feedback-bar neutral" id="feedback-bar" aria-live="polite">
+                    <span class="fb-icon" id="fb-icon">✨</span>
+                    <span class="fb-text" id="fb-text">Bereit! Nimm die oberste Karte vom Stapel als ersten Pivot.</span>
+                </div>
+            </section>
+
+            <!-- Rechte Spalte: Zähler, Protokoll & Tipp -->
+            <aside class="side-panel" aria-label="Durchläufe und Protokoll">
+                <div class="panel stats-panel">
+                    <div class="stat-row">
+                        <div class="stat-box">
+                            <span class="stat-label">Durchläufe</span>
+                            <strong class="stat-value" id="pass-count">0</strong>
+                        </div>
+                        <div class="stat-box">
+                            <span class="stat-label">Vergleiche</span>
+                            <strong class="stat-value" id="compare-count">0</strong>
+                        </div>
+                    </div>
+                    <div class="progress-line">
+                        <span>Bereits fest sortierte Karten:</span>
+                        <strong id="sorted-progress">0 / 10</strong>
+                    </div>
+                </div>
+
+                <div class="panel log-panel">
+                    <div class="log-head">
+                        <h3>Durchlauf-Protokoll</h3>
+                        <span class="log-sub">Jeder Durchlauf = Pivot + Teilen</span>
+                    </div>
+                    <div class="log-list" id="log-list">
+                        <p class="log-empty">Noch kein Durchlauf abgeschlossen.</p>
+                    </div>
+                </div>
+
+                <div class="tip-box">
+                    <span class="tip-icon-badge" aria-hidden="true">🃏</span>
+                    <div class="tip-content">
+                        <strong class="tip-heading">Erst üben, dann echt legen</strong>
+                        <p>
+                            Probiere hier verschiedene Stapel aus (auch <strong>Zufall (10)</strong>), bis jeder Schritt sitzt. Danach sortierst du deinen echten Kartenstapel auf dem Tisch!
+                        </p>
+                    </div>
+                </div>
+            </aside>
+        </main>
+    </div>
+
+    <!-- Modal: Auftrag -->
+    <div class="modal-backdrop hidden" id="story-modal" role="dialog" aria-modal="true" aria-labelledby="story-modal-title">
+        <div class="modal-card">
+            <div class="modal-header">
+                <h2 id="story-modal-title">🪄 Die magische Kartensortierung</h2>
+                <button type="button" class="icon-close" data-close-modal="story-modal" aria-label="Schließen">✕</button>
+            </div>
+            <div class="modal-body story-body">
+                <p>
+                    Ihr seid Zauberlehrlinge und wollt die schnelle <strong>Pivot-Methode</strong> meistern, um durcheinandergeratene Zahlenkarten zu sortieren.
+                </p>
+                <blockquote class="quest-quote">
+                    <strong>Die Pivot-Methode in 4 Schritten:</strong><br>
+                    1. <strong>Pivot wählen:</strong> Die oberste Karte kommt offen in die Mitte.<br>
+                    2. <strong>Teilen:</strong> Kleinere Karten wandern nach <em>links</em>, größere nach <em>rechts</em>.<br>
+                    3. <strong>Wiederholen:</strong> Nimm dir immer zuerst den linken Stapel vor, danach den rechten.<br>
+                    4. <strong>Ende:</strong> Wenn jeder Stapel nur noch aus 1 Karte besteht, ist alles sortiert!
+                </blockquote>
+                <p class="story-tip">
+                    <strong>So arbeitest du hier:</strong> Übe und verstehe das Verfahren an den Beispiel- und Zufallsstapeln im Simulator. Sobald du sicher bist, legst du die eigentliche Prüfung mit den <strong>echten Karten</strong> auf deinem Tisch und zählst die Durchläufe!
+                </p>
+            </div>
+            <div class="modal-footer">
+                <button type="button" class="btn btn-primary" data-close-modal="story-modal">Zaubertisch öffnen</button>
+            </div>
+        </div>
+    </div>
+
+    <script defer src="app.js"></script>
+</body>
+</html>

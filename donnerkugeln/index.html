@@ -1,0 +1,306 @@
+<!DOCTYPE html>
+<html lang="de">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
+    <title>Die Prüfung der Donnerkugeln – Balkenwaage-Simulator</title>
+    <link rel="stylesheet" href="style.css">
+</head>
+<body>
+    <div class="forge-glow" aria-hidden="true"></div>
+
+    <div class="app-shell">
+        <header class="topbar">
+            <div class="brand">
+                <div class="brand-icon" aria-hidden="true">
+                    <svg viewBox="0 0 36 36" width="32" height="32">
+                        <circle cx="18" cy="18" r="16" fill="#232a3b" stroke="#e6ab42" stroke-width="2"/>
+                        <path d="M19.5 7 L11 19.5 H17.5 L16 29 L25 16.5 H18.5 Z" fill="#f7c454"/>
+                    </svg>
+                </div>
+                <div class="brand-text">
+                    <h1>Die Prüfung der Donnerkugeln</h1>
+                    <p class="subtitle">Finde die schwerere Kugel mit möglichst wenigen Wiegungen</p>
+                </div>
+            </div>
+
+            <div class="topbar-actions">
+                <div class="rounds-tracker" aria-label="Fortschritt der 3 Pflichtspiele">
+                    <span class="tracker-label">Prüfungs-Spiele:</span>
+                    <div class="round-badges" id="round-badges">
+                        <span class="round-pill" data-round="1" title="Spiel 1">1</span>
+                        <span class="round-pill" data-round="2" title="Spiel 2">2</span>
+                        <span class="round-pill" data-round="3" title="Spiel 3">3</span>
+                    </div>
+                </div>
+                <a href="../index.html" class="btn btn-secondary btn-compact" style="text-decoration:none;">← Stationen</a>
+                <button type="button" class="btn btn-secondary btn-compact" id="theme-btn" aria-label="Farbschema wechseln">
+                    <span aria-hidden="true">☀️</span> Hell
+                </button>
+                <button type="button" class="btn btn-secondary btn-compact" id="story-btn">
+                    <span aria-hidden="true">📖</span> Auftrag
+                </button>
+            </div>
+        </header>
+
+        <main class="workspace">
+            <!-- Linke Spalte: Werkbank & Balkenwaage -->
+            <section class="workbench-panel" aria-label="Schmiedewerkbank">
+                <!-- 9 Donnerkugeln im Vorrat -->
+                <div class="tray-section" id="tray-section">
+                    <div class="section-header">
+                        <div class="section-title-row">
+                            <h2>Schmiedetisch (9 Donnerkugeln)</h2>
+                            <span class="weighed-legend" title="Kugeln, die schon mindestens einmal gewogen wurden">
+                                <span class="legend-badge" aria-hidden="true">✓</span> gewogen
+                            </span>
+                        </div>
+                        <div class="tray-tools">
+                            <button type="button" class="btn btn-chip" id="note-mode-btn" aria-pressed="false" title="Kugeln als normal markieren/abhaken">
+                                <span aria-hidden="true">✏️</span> Ausschließen
+                            </button>
+                            <span class="hint-pill" id="selection-hint">
+                                Tippe Kugeln an &amp; dann auf eine Schale – oder ziehe sie auf die Waage
+                            </span>
+                        </div>
+                    </div>
+                    <div class="balls-tray" id="balls-tray" role="group" aria-label="Verfügbare Donnerkugeln">
+                        <!-- Slots 1..9 werden per JS erzeugt -->
+                    </div>
+                </div>
+
+                <!-- Balkenwaage -->
+                <div class="scale-section">
+                    <div class="scale-stage" id="scale-stage">
+                        <svg class="scale-svg" viewBox="0 0 560 270" aria-hidden="true">
+                            <defs>
+                                <linearGradient id="ironGrad" x1="0%" y1="0%" x2="100%" y2="0%">
+                                    <stop offset="0%" stop-color="#2c3444"/>
+                                    <stop offset="50%" stop-color="#4b566b"/>
+                                    <stop offset="100%" stop-color="#252c3a"/>
+                                </linearGradient>
+                                <linearGradient id="brassGrad" x1="0%" y1="0%" x2="0%" y2="100%">
+                                    <stop offset="0%" stop-color="#fce08b"/>
+                                    <stop offset="45%" stop-color="#dfa034"/>
+                                    <stop offset="100%" stop-color="#8c5a12"/>
+                                </linearGradient>
+                                <linearGradient id="panGrad" x1="0%" y1="0%" x2="0%" y2="100%">
+                                    <stop offset="0%" stop-color="#f7cf6d"/>
+                                    <stop offset="100%" stop-color="#9e6918"/>
+                                </linearGradient>
+                            </defs>
+
+                            <!-- Sockel & Säule -->
+                            <path d="M195 256 L212 232 H348 L365 256 Z" fill="url(#ironGrad)" stroke="#171b24" stroke-width="2"/>
+                            <rect x="180" y="254" width="200" height="10" rx="4" fill="#1f2532" stroke="#d89b32" stroke-width="1.2" stroke-opacity="0.5"/>
+                            <path d="M266 232 L272 72 H288 L294 232 Z" fill="url(#ironGrad)" stroke="#171b24" stroke-width="2"/>
+
+                            <!-- Gleichgewichts-Skala oben -->
+                            <path d="M250 48 A32 32 0 0 1 310 48" fill="none" stroke="#8a96ab" stroke-width="2" stroke-dasharray="3 3"/>
+                            <line x1="280" y1="30" x2="280" y2="42" stroke="#f5c056" stroke-width="2.5" stroke-linecap="round"/>
+                            <text id="scale-ind-left" class="scale-ind" x="242" y="45" text-anchor="middle">L</text>
+                            <text id="scale-ind-center" class="scale-ind active" x="280" y="23" text-anchor="middle">=</text>
+                            <text id="scale-ind-right" class="scale-ind" x="318" y="45" text-anchor="middle">R</text>
+
+                            <!-- Drehbarer Waagebalken + Zeiger -->
+                            <g id="scale-beam-group">
+                                <!-- Zeiger nach oben -->
+                                <polygon points="280,36 274,64 286,64" fill="url(#brassGrad)" stroke="#5c3a08" stroke-width="1"/>
+                                <!-- Hauptbalken -->
+                                <path d="M98 70 Q190 60 280 68 Q370 60 462 70 L462 78 Q370 86 280 78 Q190 86 98 78 Z" fill="url(#ironGrad)" stroke="#141821" stroke-width="2"/>
+                                <!-- Messing-Verzierungen am Balken -->
+                                <circle cx="105" cy="74" r="6" fill="url(#brassGrad)" stroke="#5c3a08" stroke-width="1.2"/>
+                                <circle cx="455" cy="74" r="6" fill="url(#brassGrad)" stroke="#5c3a08" stroke-width="1.2"/>
+                                <circle cx="280" cy="74" r="10" fill="url(#brassGrad)" stroke="#5c3a08" stroke-width="1.5"/>
+                                <circle cx="280" cy="74" r="3.5" fill="#232938"/>
+                            </g>
+
+                            <!-- Linke Waagschale (Position per JS exakt am Haken) -->
+                            <g id="pan-left-svg">
+                                <line x1="105" y1="74" x2="48" y2="188" stroke="#c8a055" stroke-width="2.2"/>
+                                <line x1="105" y1="74" x2="162" y2="188" stroke="#c8a055" stroke-width="2.2"/>
+                                <line x1="105" y1="74" x2="105" y2="188" stroke="#c8a055" stroke-width="1.4" stroke-opacity="0.5"/>
+                                <path d="M40 188 H170 L158 205 Q105 214 52 205 Z" fill="url(#panGrad)" stroke="#6d470d" stroke-width="1.8"/>
+                                <rect x="38" y="185" width="134" height="5" rx="2.5" fill="#fbe092" stroke="#7a5111" stroke-width="1"/>
+                            </g>
+
+                            <!-- Rechte Waagschale (Position per JS exakt am Haken) -->
+                            <g id="pan-right-svg">
+                                <line x1="455" y1="74" x2="398" y2="188" stroke="#c8a055" stroke-width="2.2"/>
+                                <line x1="455" y1="74" x2="512" y2="188" stroke="#c8a055" stroke-width="2.2"/>
+                                <line x1="455" y1="74" x2="455" y2="188" stroke="#c8a055" stroke-width="1.4" stroke-opacity="0.5"/>
+                                <path d="M390 188 H520 L508 205 Q455 214 402 205 Z" fill="url(#panGrad)" stroke="#6d470d" stroke-width="1.8"/>
+                                <rect x="388" y="185" width="134" height="5" rx="2.5" fill="#fbe092" stroke="#7a5111" stroke-width="1"/>
+                            </g>
+                        </svg>
+
+                        <!-- Interaktive Drop-/Tap-Zonen genau über den Schalen -->
+                        <div class="pan-overlay pan-left" id="pan-left-zone" data-pan="left" role="button" tabindex="0" aria-label="Linke Waagschale">
+                            <div class="pan-balls" id="pan-left-balls"></div>
+                            <div class="pan-label-row">
+                                <span class="pan-label" id="pan-left-label">Links (0/4)</span>
+                                <button type="button" class="pan-clear-btn hidden" id="clear-left-btn" aria-label="Linke Schale leeren" title="Linke Schale leeren">✕</button>
+                            </div>
+                        </div>
+
+                        <div class="pan-overlay pan-right" id="pan-right-zone" data-pan="right" role="button" tabindex="0" aria-label="Rechte Waagschale">
+                            <div class="pan-balls" id="pan-right-balls"></div>
+                            <div class="pan-label-row">
+                                <span class="pan-label" id="pan-right-label">Rechts (0/4)</span>
+                                <button type="button" class="pan-clear-btn hidden" id="clear-right-btn" aria-label="Rechte Schale leeren" title="Rechte Schale leeren">✕</button>
+                            </div>
+                        </div>
+                    </div>
+
+                    <p class="balance-status-hint" id="balance-hint">Lege gleich viele Kugeln auf beide Schalen.</p>
+
+                    <div class="controls-bar">
+                        <button type="button" class="btn btn-primary" id="weigh-btn" disabled>
+                            <span aria-hidden="true">⚖️</span> Wiegen starten
+                        </button>
+                        <button type="button" class="btn btn-secondary" id="clear-scale-btn" disabled>
+                            <span aria-hidden="true">↩️</span> Waage leeren
+                        </button>
+                        <button type="button" class="btn btn-accent" id="guess-btn">
+                            <span aria-hidden="true">⚡</span> Schwere Kugel wählen
+                        </button>
+                        <button type="button" class="btn btn-ghost" id="new-game-btn">
+                            <span aria-hidden="true">🔄</span> Neues Spiel
+                        </button>
+                    </div>
+                </div>
+            </section>
+
+            <!-- Rechte Spalte: Status & Wiege-Protokoll -->
+            <aside class="journal-panel" aria-label="Prüfungs-Protokoll">
+                <div class="status-card" id="status-card">
+                    <div class="status-metrics">
+                        <div class="metric">
+                            <span class="metric-label">Wiegungen</span>
+                            <span class="metric-value" id="weigh-count">0</span>
+                        </div>
+                        <div class="metric">
+                            <span class="metric-label">Aktuelles Spiel</span>
+                            <span class="metric-value" id="current-round-num">1</span>
+                        </div>
+                        <div class="metric">
+                            <span class="metric-label">Bestwert</span>
+                            <span class="metric-value" id="best-score">–</span>
+                        </div>
+                    </div>
+
+                    <div class="last-result neutral" id="last-result-box" aria-live="polite">
+                        <span class="result-icon" id="result-icon">⚖️</span>
+                        <div class="result-text">
+                            <strong id="result-title">Bereit zum Wiegen</strong>
+                            <p id="result-detail">Finde die eine Kugel mit dem Sternensplitter.</p>
+                        </div>
+                    </div>
+                </div>
+
+                <div class="history-card">
+                    <div class="history-header">
+                        <h3>Wiege-Protokoll</h3>
+                        <span class="history-sub">Alle Ergebnisse dieser Runde</span>
+                    </div>
+                    <ol class="history-list" id="history-list">
+                        <li class="history-empty">Noch keine Wiegung durchgeführt.</li>
+                    </ol>
+                </div>
+
+                <div class="mastery-card hidden" id="mastery-card">
+                    <div class="mastery-badge">🏆</div>
+                    <div class="mastery-text">
+                        <strong id="mastery-title">3 Spiele gemeistert!</strong>
+                        <p id="mastery-desc"></p>
+                        <button type="button" class="btn btn-primary btn-compact mastery-cert-btn" id="open-cert-btn">
+                            <span aria-hidden="true">📜</span> Urkunde anzeigen
+                        </button>
+                    </div>
+                </div>
+            </aside>
+        </main>
+    </div>
+
+    <!-- Toast-Benachrichtigung -->
+    <div class="toast" id="toast" role="status" aria-live="polite"></div>
+
+    <!-- Modal: Geschichte / Auftrag -->
+    <div class="modal-backdrop hidden" id="story-modal" role="dialog" aria-modal="true" aria-labelledby="story-modal-title">
+        <div class="modal-card">
+            <div class="modal-header">
+                <h2 id="story-modal-title">⚒️ Die letzte Prüfung des Waffenschmieds</h2>
+                <button type="button" class="icon-close" data-close-modal="story-modal" aria-label="Schließen">✕</button>
+            </div>
+            <div class="modal-body story-body">
+                <p>
+                    In einem alten Zwergenreich tief unter den Bergen soll ein neuer königlicher Waffenschmied ernannt werden.
+                    Für deine letzte Prüfung führt dich der Schmiedemeister in eine stille Kammer.
+                </p>
+                <p>
+                    Der Meister präsentiert dir neun perfekt geschmiedete <strong>„Donnerkugeln“ ⚡</strong>. Sie sehen absolut identisch aus.
+                    <em>„Acht dieser Kugeln sind makellos“</em>, sagt der Meister. <em>„Aber in eine habe ich einen Splitter eines gefallenen Sterns eingearbeitet.
+                    Dieser Splitter macht sie unmerklich <strong>schwerer</strong>. Ein wahrer Meister erkennt den Unterschied nicht mit den Augen, sondern mit Verstand.“</em>
+                </p>
+                <p>
+                    Er zeigt auf eine große, alte <strong>Balkenwaage</strong> aus geschwärztem Eisen:
+                </p>
+                <blockquote class="dwarf-quest">
+                    <strong>Dein Auftrag:</strong><br>
+                    1. Finde die <strong>kleinste Anzahl an Wiegungen</strong>, um <strong>garantiert</strong> die schwere Kugel zu ermitteln.<br>
+                    2. Mache <strong>mindestens 3 Spiele</strong>, um dir mit deinem Vorgehen sicher zu sein!
+                </blockquote>
+            </div>
+            <div class="modal-footer">
+                <button type="button" class="btn btn-primary" data-close-modal="story-modal">Alles klar, an die Waage!</button>
+            </div>
+        </div>
+    </div>
+
+    <!-- Modal: Schwere Kugel auswählen (verhindert Fehlklicks!) -->
+    <div class="modal-backdrop hidden" id="guess-modal" role="dialog" aria-modal="true" aria-labelledby="guess-modal-title">
+        <div class="modal-card">
+            <div class="modal-header">
+                <h2 id="guess-modal-title">⚡ Welche Donnerkugel ist die schwerere?</h2>
+                <button type="button" class="icon-close" data-close-modal="guess-modal" aria-label="Abbrechen">✕</button>
+            </div>
+            <div class="modal-body">
+                <p class="guess-info" id="guess-info-text">
+                    Du hast bisher <strong>0 Wiegungen</strong> durchgeführt. Tippe auf die Kugel, in der der Sternensplitter steckt:
+                </p>
+                <div class="guess-grid" id="guess-grid">
+                    <!-- 9 Auswahl-Kugeln per JS -->
+                </div>
+            </div>
+            <div class="modal-footer">
+                <button type="button" class="btn btn-ghost" data-close-modal="guess-modal">Noch weiter wiegen</button>
+                <button type="button" class="btn btn-accent" id="confirm-guess-btn" disabled>Antwort abgeben</button>
+            </div>
+        </div>
+    </div>
+
+    <!-- Modal: Meister-Urkunde nach 3 erfolgreichen Spielen -->
+    <div class="modal-backdrop hidden" id="certificate-modal" role="dialog" aria-modal="true" aria-labelledby="cert-modal-title">
+        <div class="modal-card certificate-card">
+            <div class="modal-header">
+                <h2 id="cert-modal-title">📜 Schmiedemeister-Urkunde</h2>
+                <button type="button" class="icon-close" data-close-modal="certificate-modal" aria-label="Schließen">✕</button>
+            </div>
+            <div class="modal-body cert-body">
+                <div class="cert-seal" aria-hidden="true">⚒️</div>
+                <p class="cert-subtitle">Im Namen des alten Zwergenreichs verliehen an</p>
+                <input type="text" class="cert-name-input" id="cert-name-input" maxlength="32" placeholder="Dein Name (optional)" aria-label="Dein Name für die Urkunde">
+                <h3 class="cert-rank" id="cert-rank">Königlicher Waffenschmied</h3>
+                <p class="cert-summary" id="cert-summary"></p>
+                <div class="cert-rounds" id="cert-rounds"></div>
+            </div>
+            <div class="modal-footer">
+                <button type="button" class="btn btn-ghost" data-close-modal="certificate-modal">Schließen</button>
+                <button type="button" class="btn btn-primary" id="cert-new-game-btn">Weiter spielen</button>
+            </div>
+        </div>
+    </div>
+
+    <script defer src="app.js"></script>
+</body>
+</html>

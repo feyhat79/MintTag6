@@ -1,0 +1,208 @@
+<!DOCTYPE html>
+<html lang="de">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
+    <title>Die Notiz des Astronomen – Spionage-Decoder</title>
+    <link rel="stylesheet" href="style.css">
+</head>
+<body>
+    <div class="astro-glow" aria-hidden="true"></div>
+
+    <div class="app-shell">
+        <header class="topbar">
+            <div class="brand">
+                <div class="brand-icon" aria-hidden="true">
+                    <svg viewBox="0 0 36 36" width="32" height="32">
+                        <circle cx="18" cy="18" r="15" fill="#182238" stroke="#f7c454" stroke-width="1.8"/>
+                        <path d="M10 24 L23 11 L26 14 L13 27 Z" fill="#60a5fa" stroke="#f7c454" stroke-width="1.2"/>
+                        <circle cx="25.5" cy="10.5" r="2.2" fill="#f7c454"/>
+                        <circle cx="11" cy="11" r="1.2" fill="#f7c454"/>
+                        <circle cx="26" cy="24" r="1.1" fill="#93c5fd"/>
+                    </svg>
+                </div>
+                <div class="brand-text">
+                    <h1>Die Notiz des Astronomen</h1>
+                    <p class="subtitle">Entschlüssle den geheimen Standort des Meteoriten mithilfe der 3 Gitter</p>
+                </div>
+            </div>
+
+            <div class="topbar-actions">
+                <a href="../index.html" class="btn btn-secondary btn-compact" style="text-decoration:none;">← Stationen</a>
+                <button type="button" class="btn btn-secondary btn-compact" id="theme-btn" aria-label="Farbschema wechseln">
+                    <span aria-hidden="true">☀️</span> Hell
+                </button>
+                <button type="button" class="btn btn-secondary btn-compact" id="story-btn">
+                    <span aria-hidden="true">📖</span> Auftrag
+                </button>
+            </div>
+        </header>
+
+        <!-- Modus-Auswahl -->
+        <nav class="tab-bar" role="tablist" aria-label="Bereiche">
+            <button type="button" class="tab-btn active" id="tab-decode" role="tab" aria-selected="true">
+                <span aria-hidden="true">🕵️</span> Abgefangene Notiz entschlüsseln
+            </button>
+            <button type="button" class="tab-btn" id="tab-encode" role="tab" aria-selected="false">
+                <span aria-hidden="true">🔐</span> Selber verschlüsseln (Partner-Modus)
+            </button>
+        </nav>
+
+        <!-- Ansicht 1: Entschlüsseln -->
+        <main id="decode-view" class="decode-layout">
+            <!-- Abgefangene Nachricht -->
+            <section class="panel message-panel" aria-label="Verschlüsselte Nachricht">
+                <div class="panel-header">
+                    <div>
+                        <h2 id="mission-title">Abgefangener Standort (Original-Notiz)</h2>
+                        <p class="panel-hint">
+                            Tippe auf ein Geheimzeichen und wähle dann den passenden Buchstaben im Gitter (oder tippe direkt per Tastatur).
+                        </p>
+                    </div>
+                    <div class="header-tools">
+                        <div class="mode-switch" role="group" aria-label="Nachricht wählen">
+                            <button type="button" class="mode-pill active" data-mission="main">Original</button>
+                            <button type="button" class="mode-pill" data-mission="bonus1">Bonus 1</button>
+                            <button type="button" class="mode-pill" data-mission="bonus2">Bonus 2</button>
+                        </div>
+                        <button type="button" class="btn btn-ghost btn-compact" id="clear-inputs-btn">
+                            <span aria-hidden="true">🗑️</span> Leeren
+                        </button>
+                    </div>
+                </div>
+
+                <div class="cipher-words" id="cipher-words" aria-label="Geheimschrift-Felder"></div>
+
+                <div class="message-actions">
+                    <div class="action-group">
+                        <button type="button" class="btn btn-primary" id="check-msg-btn">
+                            <span aria-hidden="true">🔍</span> Lösung prüfen
+                        </button>
+                        <button type="button" class="btn btn-secondary" id="hint-btn">
+                            <span aria-hidden="true">💡</span> 1 Buchstabe verraten
+                        </button>
+                    </div>
+                    <div class="match-info" id="match-info">
+                        Gleiche Zeichen in der Nachricht werden beim Antippen gemeinsam markiert.
+                    </div>
+                </div>
+
+                <div class="feedback-bar neutral" id="decode-feedback" aria-live="polite">
+                    <span class="fb-icon" id="decode-fb-icon">🔭</span>
+                    <span id="decode-fb-text">Wähle das erste Geheimzeichen aus und suche seine Linienform in den 3 Gittern.</span>
+                </div>
+            </section>
+
+            <!-- Die 3 Gitter + Linien-Lupe -->
+            <section class="bottom-grid">
+                <div class="panel grids-panel" aria-label="Die 3 Gitter des Astronomen">
+                    <div class="grids-header">
+                        <div>
+                            <h3>Die 3 Gitter des Astronomen</h3>
+                            <p class="panel-hint">
+                                Achte auf die <strong>Wände um den Buchstaben</strong> und auf das Zeichen (<strong>ohne Punkt</strong>, <strong>•</strong> oder <strong>°</strong>).
+                            </p>
+                        </div>
+                        <div class="filter-pills" role="group" aria-label="Gitter filtern">
+                            <button type="button" class="filter-pill active" data-filter="all">Alle</button>
+                            <button type="button" class="filter-pill" data-filter="0">Ohne</button>
+                            <button type="button" class="filter-pill" data-filter="1">Mit •</button>
+                            <button type="button" class="filter-pill" data-filter="2">Mit °</button>
+                        </div>
+                    </div>
+
+                    <div class="grids-trio" id="grids-trio"></div>
+                </div>
+
+                <aside class="panel inspector-panel" aria-label="Symbol-Lupe">
+                    <h3>Symbol-Lupe</h3>
+                    <div class="inspector-card" id="inspector-card">
+                        <div class="inspector-pair">
+                            <div class="insp-box">
+                                <span class="insp-label">Gesuchtes Zeichen</span>
+                                <div class="insp-svg-wrap" id="insp-target-svg"></div>
+                            </div>
+                            <span class="insp-arrow" aria-hidden="true">⇄</span>
+                            <div class="insp-box">
+                                <span class="insp-label">Gitter-Vorschau</span>
+                                <div class="insp-svg-wrap" id="insp-hover-svg"></div>
+                                <span class="insp-letter" id="insp-hover-letter">–</span>
+                            </div>
+                        </div>
+                        <p class="insp-explain" id="insp-explain">
+                            Fahre über ein Gitterfeld oder tippe darauf, um genau zu sehen, welche Linien zu welchem Buchstaben gehören.
+                        </p>
+                    </div>
+
+                    <div class="tip-box">
+                        <span class="tip-icon-badge" aria-hidden="true">✨</span>
+                        <div class="tip-content">
+                            <strong class="tip-heading">Spionage-Tipp</strong>
+                            <p>
+                                In der Mitte (z. B. bei <strong>E</strong>) hat das Feld alle 4 Wände (<strong>□</strong>). In der Ecke hat es nur 2 Wände!
+                            </p>
+                        </div>
+                    </div>
+                </aside>
+            </section>
+        </main>
+
+        <!-- Ansicht 2: Selber verschlüsseln -->
+        <section id="encode-view" class="panel encode-panel hidden" aria-label="Selber verschlüsseln">
+            <div class="panel-header">
+                <div>
+                    <h2>Eigene Geheim-Notiz erstellen</h2>
+                    <p class="panel-hint">
+                        Tippe ein Wort oder einen kurzen Satz (A–Z) ein – oder erstelle ein Rätsel für deinen Sitznachbarn!
+                    </p>
+                </div>
+            </div>
+
+            <div class="encode-controls">
+                <input
+                    type="text"
+                    id="encode-input"
+                    maxlength="48"
+                    placeholder="z. B. HIER IST DER METEORIT"
+                    aria-label="Klartext zum Verschlüsseln"
+                >
+                <button type="button" class="btn btn-primary" id="start-partner-quiz-btn">
+                    <span aria-hidden="true">🕵️</span> Als Rätsel testen
+                </button>
+            </div>
+
+            <div class="encode-output" id="encode-output"></div>
+        </section>
+    </div>
+
+    <!-- Modal: Auftrag -->
+    <div class="modal-backdrop hidden" id="story-modal" role="dialog" aria-modal="true" aria-labelledby="story-modal-title">
+        <div class="modal-card">
+            <div class="modal-header">
+                <h2 id="story-modal-title">🔭 Die Notiz des Astronomen</h2>
+                <button type="button" class="icon-close" data-close-modal="story-modal" aria-label="Schließen">✕</button>
+            </div>
+            <div class="modal-body story-body">
+                <p>
+                    Ein Astronom hat den geheimen Standort eines frisch eingeschlagenen <strong>Meteoriten</strong> entdeckt!
+                    Damit niemand vor ihm dort ist, hat er den Ort mit drei geheimen Gittern verschlüsselt.
+                </p>
+                <blockquote class="quest-quote">
+                    <strong>So funktioniert der Code:</strong><br>
+                    Jeder Buchstabe liegt in einem von drei 3×3-Gittern.<br>
+                    Die <strong>Linien</strong> rund um sein Kästchen ergeben die Form (z. B. hat <strong>E</strong> ein geschlossenes Quadrat <strong>□</strong>).<br>
+                    Stammt der Buchstabe aus dem 2. Gitter, steht ein Punkt (<strong>•</strong>) dabei; aus dem 3. Gitter ein Kreis (<strong>°</strong>).
+                </blockquote>
+                <p class="story-tip">
+                    <strong>Deine Mission:</strong> Entschlüssle den abgefangenen Standort!
+                </p>
+            </div>
+            <div class="modal-footer">
+                <button type="button" class="btn btn-primary" data-close-modal="story-modal">Zur Werkbank</button>
+            </div>
+        </div>
+    </div>
+
+    <script defer src="app.js"></script>
+</body>
+</html>
