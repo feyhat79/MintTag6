@@ -136,6 +136,9 @@
     const caesarLeftBtn = document.getElementById("caesar-left-btn");
     const caesarRightBtn = document.getElementById("caesar-right-btn");
     const caesarReadoutValEl = document.getElementById("caesar-readout-val");
+    const caesarTestInputEl = document.getElementById("caesar-test-input");
+    const caesarTestOutputEl = document.getElementById("caesar-test-output");
+    const caesarTestHintEl = document.getElementById("caesar-test-hint");
 
     const encodeInputEl = document.getElementById("encode-input");
     const encodeShiftMinusBtn = document.getElementById("encode-shift-minus");
@@ -241,6 +244,7 @@
 
     function loadStage(stage, advanceExample = false) {
         state.stage = stage;
+        if (caesarTestInputEl) caesarTestInputEl.value = "";
         const pool = PRACTICE_POOLS[stage];
         if (advanceExample) {
             state.poolIndex[stage] = (state.poolIndex[stage] + 1) % pool.length;
@@ -419,42 +423,59 @@
             // Outer ring letter (Geheimtext)
             const ox = cx + 131 * Math.cos(rad);
             const oy = cy + 131 * Math.sin(rad);
-            outerLetters += `<text x="${ox.toFixed(1)}" y="${oy.toFixed(1)}" text-anchor="middle" dominant-baseline="central" font-size="13" font-weight="800" fill="#93c5fd" transform="rotate(${angleDeg.toFixed(1)} ${ox.toFixed(1)} ${oy.toFixed(1)})">${ALPHABET[i]}</text>`;
+            outerLetters += `<text class="wheel-outer-text" x="${ox.toFixed(1)}" y="${oy.toFixed(1)}" text-anchor="middle" dominant-baseline="central" font-size="13" font-weight="800" transform="rotate(${angleDeg.toFixed(1)} ${ox.toFixed(1)} ${oy.toFixed(1)})">${ALPHABET[i]}</text>`;
 
             const tx1 = cx + 114 * Math.cos(tickRad);
             const ty1 = cy + 114 * Math.sin(tickRad);
             const tx2 = cx + 148 * Math.cos(tickRad);
             const ty2 = cy + 148 * Math.sin(tickRad);
-            outerTicks += `<line x1="${tx1.toFixed(1)}" y1="${ty1.toFixed(1)}" x2="${tx2.toFixed(1)}" y2="${ty2.toFixed(1)}" stroke="rgba(147,197,253,0.28)" stroke-width="1"/>`;
+            outerTicks += `<line class="wheel-outer-divider" x1="${tx1.toFixed(1)}" y1="${ty1.toFixed(1)}" x2="${tx2.toFixed(1)}" y2="${ty2.toFixed(1)}" stroke-width="1"/>`;
 
             // Inner ring letter (Klartext)
             const ix = cx + 91 * Math.cos(rad);
             const iy = cy + 91 * Math.sin(rad);
-            innerLetters += `<text x="${ix.toFixed(1)}" y="${iy.toFixed(1)}" text-anchor="middle" dominant-baseline="central" font-size="13" font-weight="900" fill="#1b1407" transform="rotate(${angleDeg.toFixed(1)} ${ix.toFixed(1)} ${iy.toFixed(1)})">${ALPHABET[i]}</text>`;
+            innerLetters += `<text class="wheel-inner-text" x="${ix.toFixed(1)}" y="${iy.toFixed(1)}" text-anchor="middle" dominant-baseline="central" font-size="13" font-weight="900" transform="rotate(${angleDeg.toFixed(1)} ${ix.toFixed(1)} ${iy.toFixed(1)})">${ALPHABET[i]}</text>`;
 
             const ix1 = cx + 70 * Math.cos(tickRad);
             const iy1 = cy + 70 * Math.sin(tickRad);
             const ix2 = cx + 110 * Math.cos(tickRad);
             const iy2 = cy + 110 * Math.sin(tickRad);
-            innerTicks += `<line x1="${ix1.toFixed(1)}" y1="${iy1.toFixed(1)}" x2="${ix2.toFixed(1)}" y2="${iy2.toFixed(1)}" stroke="rgba(27,20,7,0.25)" stroke-width="1"/>`;
+            innerTicks += `<line class="wheel-inner-divider" x1="${ix1.toFixed(1)}" y1="${iy1.toFixed(1)}" x2="${ix2.toFixed(1)}" y2="${iy2.toFixed(1)}" stroke-width="1"/>`;
         }
 
         caesarSvgEl.innerHTML = `
-            <circle cx="${cx}" cy="${cy}" r="150" fill="#18243e" stroke="#60a5fa" stroke-width="2.5"/>
-            <circle cx="${cx}" cy="${cy}" r="113" fill="none" stroke="rgba(147,197,253,0.35)" stroke-width="1.5"/>
+            <circle class="wheel-outer-bg" cx="${cx}" cy="${cy}" r="150" stroke-width="2.5"/>
+            <circle class="wheel-outer-divider" cx="${cx}" cy="${cy}" r="113" fill="none" stroke-width="1.5"/>
             ${outerTicks}
             ${outerLetters}
             <g id="caesar-inner-ring">
-                <circle cx="${cx}" cy="${cy}" r="110" fill="#f7c454" stroke="#b4690e" stroke-width="2.5"/>
-                <circle cx="${cx}" cy="${cy}" r="70" fill="#151f36" stroke="#b4690e" stroke-width="2"/>
+                <circle class="wheel-inner-bg" cx="${cx}" cy="${cy}" r="110" stroke-width="2.5"/>
+                <circle class="wheel-inner-bg" cx="${cx}" cy="${cy}" r="70" fill="none" stroke-width="1.8"/>
                 ${innerTicks}
                 ${innerLetters}
             </g>
-            <circle cx="${cx}" cy="${cy}" r="64" fill="#10182b" stroke="rgba(247,196,84,0.45)" stroke-width="1.5"/>
-            <text x="${cx}" y="${cy - 14}" text-anchor="middle" font-size="10.5" font-weight="700" fill="#9fb0d0">AUSSEN = GEHEIM</text>
-            <text x="${cx}" y="${cy + 3}" text-anchor="middle" font-size="10.5" font-weight="700" fill="#f7c454">INNEN = KLAR</text>
-            <text id="caesar-center-pair" x="${cx}" y="${cy + 25}" text-anchor="middle" font-size="14" font-weight="900" fill="#f3f6fc">A = A</text>
+            <circle class="wheel-hub-bg" cx="${cx}" cy="${cy}" r="64" stroke-width="2"/>
+            <text class="wheel-hub-sub" x="${cx}" y="${cy - 15}" text-anchor="middle" font-size="10.5" font-weight="700">AUSSEN = GEHEIM</text>
+            <text class="wheel-hub-accent" x="${cx}" y="${cy + 2}" text-anchor="middle" font-size="10.5" font-weight="800">INNEN = KLAR</text>
+            <text class="wheel-hub-pair" id="caesar-center-pair" x="${cx}" y="${cy + 24}" text-anchor="middle" font-size="14" font-weight="900">Klar A → A</text>
         `;
+    }
+
+    function updateCaesarTester() {
+        if (!caesarTestInputEl || !caesarTestOutputEl) return;
+        const raw = caesarTestInputEl.value;
+        const hasSpace = /\s/.test(raw);
+        const word = normalizePhrase(raw).replace(/\s+/g, "").slice(0, 10);
+        caesarTestInputEl.value = word;
+        if (caesarTestHintEl) {
+            caesarTestHintEl.classList.toggle("hidden", !hasSpace);
+        }
+        if (!word) {
+            caesarTestOutputEl.textContent = "–";
+            return;
+        }
+        const s = ((state.wheelShift % 26) + 26) % 26;
+        caesarTestOutputEl.textContent = caesarShiftPhrase(word, -s);
     }
 
     function updateCaesarWheelVisual() {
@@ -471,6 +492,7 @@
             centerPair.textContent = `Klar A → ${cipherChar}`;
         }
         caesarReadoutValEl.textContent = `Klar A = Geheim ${cipherChar} (+${s})`;
+        updateCaesarTester();
     }
 
     function setupCaesarWheelDrag() {
@@ -719,6 +741,9 @@
             state.wheelShift = (state.wheelShift + 1) % 26;
             updateCaesarWheelVisual();
         });
+        if (caesarTestInputEl) {
+            caesarTestInputEl.addEventListener("input", updateCaesarTester);
+        }
 
         encodeInputEl.addEventListener("input", renderEncodePreview);
         encodeShiftMinusBtn.addEventListener("click", () => {

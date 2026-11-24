@@ -176,9 +176,32 @@
                             </button>
                         </div>
 
-                        <p class="caesar-mini-tip">
-                            <strong>Tipp:</strong> Suche ein kurzes Wort mit 2 oder 3 Buchstaben (z. B. <em>IM</em>, <em>AM</em>, <em>DER</em>, <em>IST</em>) und drehe die Scheibe, bis die Buchstaben passen!
-                        </p>
+                        <div class="caesar-tester">
+                            <div class="tester-head">
+                                <strong>Schlüssel-Tester (1 Wort prüfen)</strong>
+                                <span>Teste ein einzelnes Geheim-Wort, ob ein deutsches Wort herauskommt:</span>
+                            </div>
+                            <div class="tester-row">
+                                <label class="tester-field">
+                                    <span>Geheim-Wort</span>
+                                    <input
+                                        type="text"
+                                        id="caesar-test-input"
+                                        maxlength="10"
+                                        placeholder="z. B. ZDOG"
+                                        aria-label="Ein Geheim-Wort zum Testen des Schlüssels"
+                                    >
+                                </label>
+                                <span class="tester-arrow" aria-hidden="true">→</span>
+                                <div class="tester-result" aria-live="polite">
+                                    <span>Klartext</span>
+                                    <strong id="caesar-test-output">–</strong>
+                                </div>
+                            </div>
+                            <p class="tester-hint hidden" id="caesar-test-hint">
+                                Nur 1 Wort (max. 10 Buchstaben) – den Rest der Nachricht entschlüsselst du selbst!
+                            </p>
+                        </div>
                     </div>
                 </div>
             </section>
