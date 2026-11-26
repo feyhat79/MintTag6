@@ -42,7 +42,6 @@
     const state = {
         currentMode: "main",
         presses: { A: 0, B: 0, C: 0, D: 0, E: 0 },
-        showParity: false,
         hoverSwitch: null,
         pulseSwitch: null,
         pulseTimer: null,
@@ -57,7 +56,6 @@
     const switchButtons = document.querySelectorAll(".switch-btn");
     const newRandomBtn = document.getElementById("new-random-btn");
     const resetBtn = document.getElementById("reset-btn");
-    const toggleParityInput = document.getElementById("toggle-parity");
 
     const circuitTitleEl = document.getElementById("circuit-title");
     const circuitGoalTextEl = document.getElementById("circuit-goal-text");
@@ -71,7 +69,7 @@
     const resultDescEl = document.getElementById("result-desc");
 
     const activeSwitchesEl = document.getElementById("active-switches");
-    const matchingCountEl = document.getElementById("matching-count");
+    const onCountEl = document.getElementById("on-count");
     const statusBadgeEl = document.getElementById("status-badge");
 
     function applyTheme(theme) {
@@ -104,16 +102,6 @@
             }
         });
         return result;
-    }
-
-    function getActiveSignalsForDevice(devId) {
-        const active = [];
-        Object.keys(SWITCHES).forEach((swKey) => {
-            if (state.presses[swKey] % 2 === 1 && SWITCHES[swKey].targets.includes(devId)) {
-                active.push(swKey);
-            }
-        });
-        return active;
     }
 
     function generateRandomChallenge() {
@@ -223,47 +211,22 @@
     }
 
     function renderDevices() {
-        const level = getLevel();
         const current = getDeviceState();
 
         devicesRowEl.innerHTML = "";
 
         DEVICES.forEach((dev) => {
             const isOn = current[dev.id];
-            const wantOn = level.targets[dev.id];
-            const matches = isOn === wantOn;
 
             const card = document.createElement("div");
             card.className = "device-card";
             card.dataset.device = dev.id;
             if (isOn) card.classList.add("is-on");
-            if (matches) card.classList.add("matches-target");
-
-            const targetText = matches
-                ? `✓ Soll: ${wantOn ? "AN" : "AUS"}`
-                : `🎯 Soll: ${wantOn ? "AN" : "AUS"}`;
-            const targetClass = matches ? "ok" : (wantOn ? "want-on" : "want-off");
-
-            let parityHtml = "";
-            if (state.showParity) {
-                const signals = getActiveSignalsForDevice(dev.id);
-                const dots = signals.length > 0
-                    ? signals.map((s) => `<span class="parity-dot ${s}">${s}</span>`).join("")
-                    : `<span class="parity-text">0 Signale</span>`;
-                parityHtml = `
-                    <div class="parity-box">
-                        <div class="parity-dots">${dots}</div>
-                        <span class="parity-text">${signals.length}× aktiv (${signals.length % 2 === 1 ? "ungerade → AN" : "gerade → AUS"})</span>
-                    </div>
-                `;
-            }
 
             card.innerHTML = `
-                <span class="target-pill ${targetClass}">${targetText}</span>
                 ${createDeviceSvg(dev.id, isOn)}
                 <span class="device-name">${dev.name}</span>
                 <span class="state-pill ${isOn ? "on" : "off"}">${isOn ? "EIN" : "AUS"}</span>
-                ${parityHtml}
             `;
 
             devicesRowEl.appendChild(card);
@@ -379,16 +342,14 @@
         const current = getDeviceState();
         const activeKeys = Object.keys(SWITCHES).filter((k) => state.presses[k] % 2 === 1);
         const totalPresses = Object.values(state.presses).reduce((a, b) => a + b, 0);
+        const onDevices = DEVICES.filter((d) => current[d.id]).map((d) => d.name);
 
         activeSwitchesEl.textContent = activeKeys.length > 0 ? activeKeys.join(", ") : "Keine";
+        onCountEl.textContent = `${onDevices.length} / ${DEVICES.length}`;
 
-        let matches = 0;
-        DEVICES.forEach((d) => {
-            if (current[d.id] === level.targets[d.id]) matches++;
-        });
-        matchingCountEl.textContent = `${matches} / ${DEVICES.length}`;
+        const solved = DEVICES.every((d) => current[d.id] === level.targets[d.id]);
 
-        if (matches === DEVICES.length) {
+        if (solved) {
             statusBadgeEl.textContent = "Ziel erreicht ✓";
             setBanner(
                 "success",
@@ -410,13 +371,12 @@
             return;
         }
 
-        statusBadgeEl.textContent = `${matches} von ${DEVICES.length} passend`;
-        const onDevices = DEVICES.filter((d) => current[d.id]).map((d) => d.name);
+        statusBadgeEl.textContent = "Noch offen";
         setBanner(
             "info",
             "⚡",
             `Aktuell eingeschaltet: ${onDevices.length > 0 ? onDevices.join(", ") : "Kein Gerät"}`,
-            `Es passen ${matches} von ${DEVICES.length} Geräten zum Ziel. Probiere weitere Knöpfe aus!`
+            "Beobachte, welche Geräte reagieren, und teste weitere Knopf-Kombinationen."
         );
     }
 
@@ -490,11 +450,6 @@
     });
 
     resetBtn.addEventListener("click", resetPresses);
-
-    toggleParityInput.addEventListener("change", () => {
-        state.showParity = toggleParityInput.checked;
-        renderDevices();
-    });
 
     window.addEventListener("resize", drawWires);
 
