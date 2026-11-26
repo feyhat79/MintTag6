@@ -1,0 +1,191 @@
+<!DOCTYPE html>
+<html lang="de">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
+    <title>Haushaltsgeräte – Schaltplan-Simulator</title>
+    <link rel="stylesheet" href="style.css">
+</head>
+<body>
+    <div class="circuit-glow" aria-hidden="true"></div>
+
+    <div class="app-shell">
+        <header class="topbar">
+            <div class="brand">
+                <div class="brand-icon" aria-hidden="true">
+                    <svg viewBox="0 0 36 36" width="32" height="32">
+                        <rect x="4" y="4" width="28" height="28" rx="7" fill="#1b2234" stroke="#38bdf8" stroke-width="1.8"/>
+                        <rect x="8" y="9" width="8" height="8" rx="2" fill="#3b82f6"/>
+                        <rect x="20" y="9" width="8" height="8" rx="2" fill="#f97316"/>
+                        <path d="M12 17 L18 25 M24 17 L18 25" stroke="#f7c454" stroke-width="2.2" stroke-linecap="round"/>
+                        <circle cx="18" cy="25.5" r="3" fill="#34d399"/>
+                    </svg>
+                </div>
+                <div class="brand-text">
+                    <h1>Haushaltsgeräte</h1>
+                    <p class="subtitle">Finde heraus, welche Knöpfe genau die gewünschten Geräte einschalten</p>
+                </div>
+            </div>
+
+            <div class="topbar-actions">
+                <a href="../index.html" class="btn btn-secondary btn-compact" style="text-decoration:none;">← Stationen</a>
+                <button type="button" class="btn btn-secondary btn-compact" id="theme-btn" aria-label="Farbschema wechseln">
+                    <span aria-hidden="true">☀️</span> Hell
+                </button>
+                <button type="button" class="btn btn-secondary btn-compact" id="story-btn">
+                    <span aria-hidden="true">📖</span> Auftrag
+                </button>
+            </div>
+        </header>
+
+        <main class="workspace">
+            <section class="panel circuit-panel" aria-label="Schaltplan">
+                <div class="panel-header">
+                    <div>
+                        <h2 id="circuit-title">Original-Aufgabe: Fernseher &amp; Kaffeemaschine</h2>
+                        <p class="panel-hint" id="circuit-goal-text">
+                            Ziel: Am Ende sollen <strong>nur der Fernseher und die Kaffeemaschine</strong> eingeschaltet sein.
+                        </p>
+                    </div>
+                    <div class="header-tools">
+                        <div class="mode-switch" role="group" aria-label="Variante wählen">
+                            <button type="button" class="mode-pill" data-mode="intro">Einstieg</button>
+                            <button type="button" class="mode-pill active" data-mode="main">Original</button>
+                            <button type="button" class="mode-pill" data-mode="random">Zufall</button>
+                        </div>
+                        <button type="button" class="btn btn-secondary btn-compact hidden" id="new-random-btn">
+                            <span aria-hidden="true">🎲</span> Neues Ziel
+                        </button>
+                        <button type="button" class="btn btn-ghost btn-compact" id="reset-btn">
+                            <span aria-hidden="true">↺</span> Alles ausschalten
+                        </button>
+                    </div>
+                </div>
+
+                <!-- Schaltbrett -->
+                <div class="circuit-board-scroll">
+                    <div class="circuit-board" id="circuit-board">
+                        <svg class="wiring-svg" id="wiring-svg" aria-hidden="true"></svg>
+
+                        <!-- Obere Knöpfe: B, C, A (genau wie in der Vorlage) -->
+                        <div class="switch-row top-switches">
+                            <button type="button" class="switch-btn sw-B" data-switch="B" style="grid-column: 1 / span 2;">
+                                <span class="sw-letter">B</span>
+                                <span class="sw-count" id="count-B">0×</span>
+                            </button>
+                            <button type="button" class="switch-btn sw-C" data-switch="C" style="grid-column: 3;">
+                                <span class="sw-letter">C</span>
+                                <span class="sw-count" id="count-C">0×</span>
+                            </button>
+                            <button type="button" class="switch-btn sw-A" data-switch="A" style="grid-column: 5;">
+                                <span class="sw-letter">A</span>
+                                <span class="sw-count" id="count-A">0×</span>
+                            </button>
+                        </div>
+
+                        <!-- 5 Haushaltsgeräte -->
+                        <div class="devices-row" id="devices-row">
+                            <!-- Per JS befüllt -->
+                        </div>
+
+                        <!-- Untere Knöpfe: D, E -->
+                        <div class="switch-row bottom-switches">
+                            <button type="button" class="switch-btn sw-D" data-switch="D" style="grid-column: 2 / span 2;">
+                                <span class="sw-letter">D</span>
+                                <span class="sw-count" id="count-D">0×</span>
+                            </button>
+                            <button type="button" class="switch-btn sw-E" data-switch="E" style="grid-column: 4;">
+                                <span class="sw-letter">E</span>
+                                <span class="sw-count" id="count-E">0×</span>
+                            </button>
+                        </div>
+                    </div>
+                </div>
+
+                <div class="circuit-actions">
+                    <label class="toggle-chip">
+                        <input type="checkbox" id="toggle-parity">
+                        <span>Umschalt-Signale pro Gerät anzeigen (gerade / ungerade)</span>
+                    </label>
+                </div>
+            </section>
+
+            <section class="bottom-grid">
+                <div class="bottom-left-col">
+                    <div class="panel result-panel" aria-live="polite">
+                        <div class="result-banner neutral" id="result-banner">
+                            <span class="result-icon" id="result-icon">🔌</span>
+                            <div class="result-copy">
+                                <strong id="result-title">Zu Beginn sind alle 5 Geräte ausgeschaltet!</strong>
+                                <p id="result-desc">
+                                    Tippe einen der Knöpfe A bis E an, um alle verbundenen Geräte umzuschalten. Fahre über einen Knopf, um seine Kabel zu markieren.
+                                </p>
+                            </div>
+                        </div>
+                    </div>
+
+                    <div class="tip-box">
+                        <span class="tip-icon-badge" aria-hidden="true">💡</span>
+                        <div class="tip-content">
+                            <strong class="tip-heading">Wichtiger Denk-Tipp</strong>
+                            <p>
+                                Die Reihenfolge der Knöpfe ist egal – und drückst du denselben Knopf <strong>zweimal</strong>, hebt sich seine Wirkung wieder auf! Entscheidend ist nur, ob ein Gerät <strong>ungerade oft</strong> umgeschaltet wurde.
+                            </p>
+                        </div>
+                    </div>
+                </div>
+
+                <aside class="panel tip-panel" aria-label="Schalt-Übersicht">
+                    <h3>Schalt-Status</h3>
+                    <div class="stats-stack">
+                        <div class="progress-summary">
+                            <span class="progress-label">Aktive Knöpfe:</span>
+                            <strong id="active-switches">Keine</strong>
+                        </div>
+                        <div class="progress-summary">
+                            <span class="progress-label">Passende Geräte:</span>
+                            <strong id="matching-count">3 / 5</strong>
+                        </div>
+                        <div class="progress-summary">
+                            <span class="progress-label">Ziel-Check:</span>
+                            <strong id="status-badge">Noch offen</strong>
+                        </div>
+                    </div>
+                </aside>
+            </section>
+        </main>
+    </div>
+
+    <!-- Modal: Auftrag -->
+    <div class="modal-backdrop hidden" id="story-modal" role="dialog" aria-modal="true" aria-labelledby="story-modal-title">
+        <div class="modal-card">
+            <div class="modal-header">
+                <h2 id="story-modal-title">🔌 Haushaltsgeräte</h2>
+                <button type="button" class="icon-close" data-close-modal="story-modal" aria-label="Schließen">✕</button>
+            </div>
+            <div class="modal-body story-body">
+                <p>
+                    Im Haus von Biber Bruno gibt es fünf elektrische Geräte (<strong>Computer, Waschmaschine, Fernseher, Kaffeemaschine, Staubsauger</strong>) und fünf Knöpfe (<strong>A, B, C, D, E</strong>).
+                </p>
+                <p>
+                    Jeder Knopf ist mit mehreren Geräten gleichzeitig verkabelt. Jedes Mal, wenn man einen Knopf drückt, schaltet er alle verbundenen Geräte um:
+                    Ausgeschaltete werden eingeschaltet – und eingeschaltete werden wieder ausgeschaltet!
+                </p>
+                <blockquote class="quest-box">
+                    <strong>Beispiel &amp; dein Auftrag:</strong><br>
+                    Zu Beginn sind alle Geräte aus. Drückt man z. B. <strong>A, C und E</strong>, wird der Staubsauger zuerst ein-, dann aus- und wieder eingeschaltet.<br>
+                    <strong>Ziel:</strong> Welche Knöpfe muss Bruno drücken, damit am Ende <strong>nur der Fernseher und die Kaffeemaschine</strong> eingeschaltet sind?
+                </blockquote>
+                <p class="story-tip">
+                    <em>Tipp:</em> Schau zuerst auf den <strong>Computer</strong>: Er hängt nur an B und C. Soll er am Ende aus sein, müssen B und C entweder beide gedrückt werden oder keiner von beiden!
+                </p>
+            </div>
+            <div class="modal-footer">
+                <button type="button" class="btn btn-primary" data-close-modal="story-modal">Los geht’s!</button>
+            </div>
+        </div>
+    </div>
+
+    <script defer src="app.js"></script>
+</body>
+</html>

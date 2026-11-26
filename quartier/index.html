@@ -1,0 +1,181 @@
+<!DOCTYPE html>
+<html lang="de">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
+    <title>Farbiges Quartier – Straßen-Färber-Simulator</title>
+    <link rel="stylesheet" href="style.css">
+</head>
+<body>
+    <div class="street-glow" aria-hidden="true"></div>
+
+    <div class="app-shell">
+        <header class="topbar">
+            <div class="brand">
+                <div class="brand-icon" aria-hidden="true">
+                    <svg viewBox="0 0 36 36" width="32" height="32">
+                        <rect x="4" y="4" width="28" height="28" rx="7" fill="#1b2436" stroke="#f7c454" stroke-width="1.8"/>
+                        <path d="M9 19 L18 10 L27 19 V28 H9 Z" fill="#ef4444" stroke="#fffdf8" stroke-width="1.5"/>
+                        <rect x="15" y="21" width="6" height="7" fill="#7c4a21"/>
+                    </svg>
+                </div>
+                <div class="brand-text">
+                    <h1>Farbiges Quartier</h1>
+                    <p class="subtitle">Male alle weißen Häuser mit Hellgrün, Rot oder Dunkelblau passend an</p>
+                </div>
+            </div>
+
+            <div class="topbar-actions">
+                <a href="../index.html" class="btn btn-secondary btn-compact" style="text-decoration:none;">← Stationen</a>
+                <button type="button" class="btn btn-secondary btn-compact" id="theme-btn" aria-label="Farbschema wechseln">
+                    <span aria-hidden="true">☀️</span> Hell
+                </button>
+                <button type="button" class="btn btn-secondary btn-compact" id="story-btn">
+                    <span aria-hidden="true">📖</span> Auftrag
+                </button>
+            </div>
+        </header>
+
+        <main class="workspace">
+            <section class="panel street-panel" aria-label="Quartier-Straße">
+                <div class="panel-header">
+                    <div>
+                        <h2 id="street-title">Original-Quartier (2 × 5 Häuser)</h2>
+                        <p class="panel-hint">
+                            Wähle unten eine Farbe und tippe auf ein weißes Haus (mit Leiter).
+                        </p>
+                    </div>
+                    <div class="header-tools">
+                        <div class="mode-switch" role="group" aria-label="Variante wählen">
+                            <button type="button" class="mode-pill" data-mode="intro">Einstieg (2×3)</button>
+                            <button type="button" class="mode-pill active" data-mode="main">Original (2×5)</button>
+                            <button type="button" class="mode-pill" data-mode="random">Zufall (2×6)</button>
+                        </div>
+                        <button type="button" class="btn btn-secondary btn-compact hidden" id="new-random-btn">
+                            <span aria-hidden="true">🎲</span> Neue Straße
+                        </button>
+                        <button type="button" class="btn btn-ghost btn-compact" id="clear-btn">
+                            <span aria-hidden="true">🗑️</span> Neu anmalen
+                        </button>
+                    </div>
+                </div>
+
+                <!-- Farbpalette -->
+                <div class="palette-bar" role="group" aria-label="Farbeimer wählen">
+                    <span class="palette-label">Farbeimer:</span>
+                    <button type="button" class="paint-btn active" data-color="green">
+                        <span class="paint-swatch green"></span> Hellgrün
+                    </button>
+                    <button type="button" class="paint-btn" data-color="red">
+                        <span class="paint-swatch red"></span> Rot
+                    </button>
+                    <button type="button" class="paint-btn" data-color="blue">
+                        <span class="paint-swatch blue"></span> Dunkelblau
+                    </button>
+                    <button type="button" class="paint-btn" data-color="white">
+                        <span class="paint-swatch white"></span> Weiß (Radierer)
+                    </button>
+                </div>
+
+                <!-- Straße mit 2 Häuserreihen -->
+                <div class="street-stage-scroll">
+                    <div class="street-stage" id="street-stage">
+                        <div class="house-row" id="row-top" aria-label="Obere Straßenseite"></div>
+                        <div class="road-strip" aria-hidden="true">
+                            <span class="road-line"></span>
+                            <span class="road-label">Dorfstraße – direkt gegenüber ≠ gleiche Farbe</span>
+                            <span class="road-line"></span>
+                        </div>
+                        <div class="house-row" id="row-bottom" aria-label="Untere Straßenseite"></div>
+                        <svg class="conflict-overlay" id="conflict-overlay" aria-hidden="true"></svg>
+                    </div>
+                </div>
+
+                <div class="street-actions">
+                    <label class="toggle-chip">
+                        <input type="checkbox" id="toggle-candidates">
+                        <span>Mögliche Farben pro Haus anzeigen</span>
+                    </label>
+                </div>
+            </section>
+
+            <section class="bottom-grid">
+                <div class="bottom-left-col">
+                    <div class="panel result-panel" aria-live="polite">
+                        <div class="result-banner neutral" id="result-banner">
+                            <span class="result-icon" id="result-icon">🎨</span>
+                            <div class="result-copy">
+                                <strong id="result-title">Male die weißen Häuser an!</strong>
+                                <p id="result-desc">
+                                    Weder zwei Häuser direkt nebeneinander noch zwei Häuser direkt gegenüber dürfen dieselbe Farbe bekommen.
+                                </p>
+                            </div>
+                        </div>
+                    </div>
+
+                    <div class="tip-box">
+                        <span class="tip-icon-badge" aria-hidden="true">💡</span>
+                        <div class="tip-content">
+                            <strong class="tip-heading">Wichtiger Denk-Tipp</strong>
+                            <p>
+                                Beginne bei einem weißen Haus, das schon <strong>zwei verschiedene Farben als Nachbarn</strong> hat – dort bleibt sofort nur eine einzige Farbe übrig!
+                            </p>
+                        </div>
+                    </div>
+                </div>
+
+                <aside class="panel tip-panel" aria-label="Fortschritt und Prüfung">
+                    <h3>Dein Fortschritt</h3>
+                    <div class="stats-stack">
+                        <div class="progress-summary">
+                            <span class="progress-label">Bemalte Häuser:</span>
+                            <strong id="painted-count">0 / 6</strong>
+                        </div>
+                        <div class="progress-summary">
+                            <span class="progress-label">Regel-Konflikte:</span>
+                            <strong id="conflict-count">0</strong>
+                        </div>
+                        <div class="progress-summary">
+                            <span class="progress-label">Prüfung:</span>
+                            <strong id="status-badge">Noch offen</strong>
+                        </div>
+                    </div>
+                </aside>
+            </section>
+        </main>
+    </div>
+
+    <!-- Modal: Auftrag -->
+    <div class="modal-backdrop hidden" id="story-modal" role="dialog" aria-modal="true" aria-labelledby="story-modal-title">
+        <div class="modal-card">
+            <div class="modal-header">
+                <h2 id="story-modal-title">🏘️ Farbiges Quartier</h2>
+                <button type="button" class="icon-close" data-close-modal="story-modal" aria-label="Schließen">✕</button>
+            </div>
+            <div class="modal-body story-body">
+                <p>
+                    Die Anwohner einer Straße wollen ihre weißen Häuser farbig anmalen. Jedes Haus soll eine von drei Farben bekommen:
+                    <strong>Hellgrün</strong>, <strong>Rot</strong> oder <strong>Dunkelblau</strong>.
+                </p>
+                <p>
+                    Einige Anwohner haben ihre Häuser bereits angemalt (sie tragen ein kleines Schloss 🔒). Damit die Straße schön bunt bleibt, gelten zwei Regeln:
+                </p>
+                <blockquote class="quest-box">
+                    <strong>Regeln &amp; dein Auftrag:</strong><br>
+                    • Zwei <strong>direkt nebeneinander</strong> stehende Häuser dürfen nicht dieselbe Farbe haben.<br>
+                    • Zwei Häuser, die sich auf der Straße <strong>direkt gegenüber</strong> stehen, dürfen nicht dieselbe Farbe haben.<br>
+                    <strong>Ziel:</strong> Finde für alle übrigen weißen Häuser passende Farben!
+                </blockquote>
+                <p class="story-tip">
+                    <em>Tipp:</em> Falls du festhängst, schalte unten <em>„Mögliche Farben pro Haus anzeigen“</em> ein – dann siehst du sofort, wo es nur noch eine Möglichkeit gibt.
+                </p>
+            </div>
+            <div class="modal-footer">
+                <button type="button" class="btn btn-primary" data-close-modal="story-modal">Los geht’s!</button>
+            </div>
+        </div>
+    </div>
+
+    <script defer src="app.js"></script>
+</body>
+</html>

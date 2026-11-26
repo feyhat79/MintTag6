@@ -168,6 +168,9 @@ html, body {
 .card-astro::before { background: #1c7ed6; }
 .card-forge::before { background: #d97706; }
 .card-barrel::before { background: #c84b31; }
+.card-garden::before { background: #2f9e44; }
+.card-street::before { background: #e8590c; }
+.card-circuit::before { background: #0284c7; }
 
 .card-top {
     display: flex;
@@ -192,6 +195,9 @@ html, body {
 .card-astro .station-tag { background: #e3f2fd; }
 .card-forge .station-tag { background: #fff3d6; }
 .card-barrel .station-tag { background: #fde9e4; }
+.card-garden .station-tag { background: #e6f7ea; }
+.card-street .station-tag { background: #fff0e3; }
+.card-circuit .station-tag { background: #e0f2fe; }
 
 .scribble-note {
     font-family: "MeineHandschrift", cursive, sans-serif;

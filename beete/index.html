@@ -1,0 +1,162 @@
+<!DOCTYPE html>
+<html lang="de">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
+    <title>Beete bewässern – Rasensprenger-Simulator</title>
+    <link rel="stylesheet" href="style.css">
+</head>
+<body>
+    <div class="garden-glow" aria-hidden="true"></div>
+
+    <div class="app-shell">
+        <header class="topbar">
+            <div class="brand">
+                <div class="brand-icon" aria-hidden="true">
+                    <svg viewBox="0 0 36 36" width="32" height="32">
+                        <rect x="4" y="4" width="28" height="28" rx="7" fill="#1e3a29" stroke="#34d399" stroke-width="1.8"/>
+                        <path d="M18 27 V19" stroke="#94a3b8" stroke-width="2.6" stroke-linecap="round"/>
+                        <rect x="14" y="25" width="8" height="3.5" rx="1.5" fill="#475569"/>
+                        <path d="M18 19 Q11 10 8 17 M18 19 Q18 7 18 13 M18 19 Q25 10 28 17" fill="none" stroke="#38bdf8" stroke-width="2.1" stroke-linecap="round"/>
+                        <circle cx="8" cy="18" r="1.4" fill="#7dd3fc"/>
+                        <circle cx="28" cy="18" r="1.4" fill="#7dd3fc"/>
+                    </svg>
+                </div>
+                <div class="brand-text">
+                    <h1>Beete bewässern</h1>
+                    <p class="subtitle">Platziere so wenige Rasensprenger wie nötig, um alle Blumen zu gießen</p>
+                </div>
+            </div>
+
+            <div class="topbar-actions">
+                <a href="../index.html" class="btn btn-secondary btn-compact" style="text-decoration:none;">← Stationen</a>
+                <button type="button" class="btn btn-secondary btn-compact" id="theme-btn" aria-label="Farbschema wechseln">
+                    <span aria-hidden="true">☀️</span> Hell
+                </button>
+                <button type="button" class="btn btn-secondary btn-compact" id="story-btn">
+                    <span aria-hidden="true">📖</span> Auftrag
+                </button>
+            </div>
+        </header>
+
+        <main class="workspace">
+            <section class="panel garden-panel" aria-label="Gartenfeld">
+                <div class="panel-header">
+                    <div>
+                        <h2 id="garden-title">Original-Garten (4 × 5 Felder)</h2>
+                        <p class="panel-hint" id="garden-hint">
+                            Tippe auf ein freies Feld, um dort einen Rasensprenger aufzustellen oder wieder wegzunehmen.
+                        </p>
+                    </div>
+                    <div class="header-tools">
+                        <div class="mode-switch" role="group" aria-label="Variante wählen">
+                            <button type="button" class="mode-pill" data-mode="intro">Einstieg (3×4)</button>
+                            <button type="button" class="mode-pill active" data-mode="main">Original (4×5)</button>
+                            <button type="button" class="mode-pill" data-mode="random">Zufall (5×5)</button>
+                        </div>
+                        <button type="button" class="btn btn-secondary btn-compact hidden" id="new-random-btn">
+                            <span aria-hidden="true">🎲</span> Neuer Garten
+                        </button>
+                        <button type="button" class="btn btn-ghost btn-compact" id="clear-btn">
+                            <span aria-hidden="true">🗑️</span> Alle entfernen
+                        </button>
+                    </div>
+                </div>
+
+                <div class="garden-stage">
+                    <div class="garden-legend">
+                        <span class="legend-item"><span class="legend-swatch dry"></span> Trockenes Beet</span>
+                        <span class="legend-item"><span class="legend-swatch wet"></span> Bewässertes Beet</span>
+                        <span class="legend-item"><span class="legend-swatch spray"></span> Reichweite (8 Nachbarn)</span>
+                    </div>
+
+                    <div class="garden-grid" id="garden-grid" role="grid" aria-label="Gartenraster"></div>
+                </div>
+
+                <div class="garden-actions">
+                    <label class="toggle-chip">
+                        <input type="checkbox" id="toggle-range" checked>
+                        <span>Sprüh-Felder farbig markieren</span>
+                    </label>
+                </div>
+            </section>
+
+            <section class="bottom-grid">
+                <div class="bottom-left-col">
+                    <div class="panel result-panel" aria-live="polite">
+                        <div class="result-banner neutral" id="result-banner">
+                            <span class="result-icon" id="result-icon">💧</span>
+                            <div class="result-copy">
+                                <strong id="result-title">Setze deinen ersten Rasensprenger!</strong>
+                                <p id="result-desc">
+                                    Jeder Sprenger erreicht die 8 Felder direkt um sich herum – aber auf Blumenfeldern selbst darf kein Sprenger stehen.
+                                </p>
+                            </div>
+                        </div>
+                    </div>
+
+                    <div class="tip-box">
+                        <span class="tip-icon-badge" aria-hidden="true">💡</span>
+                        <div class="tip-content">
+                            <strong class="tip-heading">Wichtiger Denk-Tipp</strong>
+                            <p>
+                                Suche dir freie Felder genau <strong>zwischen mehreren Blumenbeeten</strong> – ein einziger geschickter Sprenger kann oft gleich <strong>2 oder 3 Beete</strong> auf einmal erreichen!
+                            </p>
+                        </div>
+                    </div>
+                </div>
+
+                <aside class="panel tip-panel" aria-label="Fortschritt und Ziel">
+                    <h3>Dein Ergebnis</h3>
+                    <div class="stats-stack">
+                        <div class="progress-summary">
+                            <span class="progress-label">Gesetzte Sprenger:</span>
+                            <strong id="sprinkler-count">0</strong>
+                        </div>
+                        <div class="progress-summary">
+                            <span class="progress-label">Bewässerte Beete:</span>
+                            <strong id="watered-count">0 / 5</strong>
+                        </div>
+                        <div class="progress-summary">
+                            <span class="progress-label">Bewertung:</span>
+                            <strong id="status-badge">Noch offen</strong>
+                        </div>
+                    </div>
+                </aside>
+            </section>
+        </main>
+    </div>
+
+    <!-- Modal: Auftrag -->
+    <div class="modal-backdrop hidden" id="story-modal" role="dialog" aria-modal="true" aria-labelledby="story-modal-title">
+        <div class="modal-card">
+            <div class="modal-header">
+                <h2 id="story-modal-title">🌻 Beete bewässern</h2>
+                <button type="button" class="icon-close" data-close-modal="story-modal" aria-label="Schließen">✕</button>
+            </div>
+            <div class="modal-body story-body">
+                <p>
+                    Daniels Garten besteht aus quadratischen Feldern. In einigen dieser Felder hat er <strong>Blumen gepflanzt</strong>.
+                </p>
+                <p>
+                    Im Sommer möchte er alle Blumen mit Rasensprengern bewässern. Dabei gelten zwei Regeln:
+                </p>
+                <blockquote class="quest-box">
+                    <strong>Regeln &amp; dein Auftrag:</strong><br>
+                    1. Auf Felder <strong>mit Blumen</strong> darf kein Rasensprenger gestellt werden.<br>
+                    2. Jeder Rasensprenger bewässert alle Blumen in den <strong>8 Feldern direkt um ihn herum</strong> (auch diagonal).<br>
+                    <strong>Ziel:</strong> Platziere <strong>so wenige Rasensprenger wie nötig</strong>, um alle Blumenfelder zu bewässern!
+                </blockquote>
+                <p class="story-tip">
+                    <em>Tipp:</em> Wenn am Ende alle Blumen blühen, prüfe unbedingt, ob du nicht mit noch weniger Sprengern auskommst!
+                </p>
+            </div>
+            <div class="modal-footer">
+                <button type="button" class="btn btn-primary" data-close-modal="story-modal">Los geht’s!</button>
+            </div>
+        </div>
+    </div>
+
+    <script defer src="app.js"></script>
+</body>
+</html>
