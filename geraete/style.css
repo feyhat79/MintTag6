@@ -246,34 +246,55 @@ html, body {
     z-index: 1;
 }
 
+.wire-group {
+    transition: opacity 0.16s ease;
+}
+
+.wire-group.is-dimmed {
+    opacity: 0.16;
+}
+
 .wire-line {
     fill: none;
-    stroke-width: 4.2;
+    stroke-width: 2.8;
     stroke-linecap: round;
-    opacity: 0.72;
+    opacity: 0.28;
     transition: opacity 0.15s ease, stroke-width 0.15s ease, filter 0.15s ease;
 }
 
-.wire-line.dimmed {
-    opacity: 0.18;
+:root[data-theme="light"] .wire-line {
+    opacity: 0.34;
 }
 
-.wire-line.highlighted {
-    opacity: 1;
-    stroke-width: 6;
+.wire-group.is-active .wire-line {
+    stroke-width: 5.5;
+    opacity: 0.96;
     filter: drop-shadow(0 0 6px currentColor);
 }
 
-.wire-line.pulse {
-    stroke-width: 7;
-    opacity: 1;
-    stroke-dasharray: 12 8;
-    animation: wireDash 0.45s linear;
+.wire-core {
+    fill: none;
+    stroke: rgba(255, 255, 255, 0.55);
+    stroke-width: 1.8;
+    stroke-linecap: round;
+    pointer-events: none;
 }
 
-@keyframes wireDash {
-    from { stroke-dashoffset: 40; }
-    to { stroke-dashoffset: 0; }
+.wire-particle {
+    fill: #ffffff;
+    stroke-width: 2.2;
+    filter: drop-shadow(0 0 4px rgba(255, 255, 255, 0.9));
+}
+
+.wire-group.is-highlighted .wire-line {
+    opacity: 1;
+    stroke-width: 6.5;
+    filter: drop-shadow(0 0 8px currentColor);
+}
+
+.wire-group.is-pulse .wire-line {
+    stroke-width: 7.2;
+    opacity: 1;
 }
 
 .switch-row {
@@ -288,10 +309,10 @@ html, body {
 .switch-btn {
     appearance: none;
     position: relative;
-    width: 72px;
-    height: 66px;
+    width: 84px;
+    height: 70px;
     border-radius: 14px;
-    border: 3px solid rgba(255, 255, 255, 0.25);
+    border: 2.5px solid rgba(255, 255, 255, 0.22);
     color: #ffffff;
     font-family: inherit;
     font-weight: 900;
@@ -300,31 +321,71 @@ html, body {
     flex-direction: column;
     align-items: center;
     justify-content: center;
-    gap: 2px;
-    box-shadow: 0 6px 0 rgba(0, 0, 0, 0.35), 0 8px 16px rgba(0, 0, 0, 0.28);
-    transition: transform 0.1s ease, box-shadow 0.1s ease, filter 0.15s ease;
+    gap: 3px;
+    opacity: 0.72;
+    filter: saturate(0.55) brightness(0.92);
+    box-shadow: 0 6px 0 rgba(0, 0, 0, 0.35), 0 8px 14px rgba(0, 0, 0, 0.22);
+    transition: transform 0.12s ease, box-shadow 0.15s ease, filter 0.15s ease, opacity 0.15s ease, border-color 0.15s ease;
     touch-action: manipulation;
     user-select: none;
 }
 
 .switch-btn:hover {
-    filter: brightness(1.08);
+    opacity: 1;
+    filter: saturate(1) brightness(1.06);
     transform: translateY(-2px);
 }
 
 .switch-btn:active {
-    transform: translateY(3px);
+    transform: translateY(4px);
     box-shadow: 0 2px 0 rgba(0, 0, 0, 0.35);
 }
 
 .switch-btn.is-odd {
+    opacity: 1;
+    filter: saturate(1.16) brightness(1.06);
+    transform: translateY(3px);
     border-color: #ffffff;
-    box-shadow: 0 0 0 3px rgba(255, 255, 255, 0.45), 0 6px 0 rgba(0, 0, 0, 0.35);
+    box-shadow:
+        0 0 0 3px rgba(255, 255, 255, 0.5),
+        0 0 22px rgba(255, 255, 255, 0.35),
+        0 2px 0 rgba(0, 0, 0, 0.42);
 }
 
 :root[data-theme="light"] .switch-btn.is-odd {
     border-color: #111827;
-    box-shadow: 0 0 0 3px rgba(17, 24, 39, 0.25), 0 5px 0 rgba(0, 0, 0, 0.28);
+    box-shadow:
+        0 0 0 3.5px #111827,
+        0 0 18px rgba(15, 23, 42, 0.28),
+        0 2px 0 rgba(0, 0, 0, 0.4);
+}
+
+.switch-btn.is-odd:hover {
+    transform: translateY(2px);
+}
+
+.sw-led {
+    position: absolute;
+    top: 7px;
+    right: 7px;
+    width: 10px;
+    height: 10px;
+    border-radius: 50%;
+    background: rgba(15, 23, 42, 0.45);
+    border: 1.5px solid rgba(255, 255, 255, 0.45);
+    transition: background-color 0.15s ease, box-shadow 0.15s ease;
+}
+
+.switch-btn.is-odd .sw-led {
+    background: #4ade80;
+    border-color: #ffffff;
+    box-shadow: 0 0 8px #4ade80, 0 0 14px rgba(74, 222, 128, 0.9);
+}
+
+:root[data-theme="light"] .switch-btn.is-odd .sw-led {
+    background: #22c55e;
+    border-color: #052e16;
+    box-shadow: 0 0 8px #22c55e;
 }
 
 .sw-A { background: linear-gradient(145deg, #fb923c, #ea580c); }
@@ -339,12 +400,19 @@ html, body {
 }
 
 .sw-count {
-    font-size: 0.72rem;
+    font-size: 0.7rem;
     font-weight: 800;
-    padding: 1px 7px;
+    padding: 2px 8px;
     border-radius: 999px;
-    background: rgba(0, 0, 0, 0.28);
+    background: rgba(0, 0, 0, 0.3);
     color: inherit;
+    letter-spacing: 0.02em;
+}
+
+.switch-btn.is-odd .sw-count {
+    background: rgba(255, 255, 255, 0.94);
+    color: #0f172a;
+    box-shadow: 0 1px 3px rgba(0, 0, 0, 0.25);
 }
 
 /* Geräte */

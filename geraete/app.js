@@ -273,21 +273,26 @@
     }
 
     function drawWires() {
+        const SVG_NS = "http://www.w3.org/2000/svg";
         const boardRect = circuitBoardEl.getBoundingClientRect();
         wiringSvgEl.setAttribute("viewBox", `0 0 ${boardRect.width} ${boardRect.height}`);
         wiringSvgEl.innerHTML = "";
-
-        const focusSwitch = state.hoverSwitch || state.pulseSwitch;
 
         Object.values(SWITCHES).forEach((sw) => {
             const swEl = circuitBoardEl.querySelector(`.switch-btn[data-switch="${sw.id}"]`);
             if (!swEl) return;
             const swRect = swEl.getBoundingClientRect();
             const isTop = sw.id === "A" || sw.id === "B" || sw.id === "C";
+            const isActive = state.presses[sw.id] % 2 === 1;
+
             const x1 = swRect.left - boardRect.left + swRect.width / 2;
             const y1 = isTop
                 ? swRect.bottom - boardRect.top - 4
                 : swRect.top - boardRect.top + 4;
+
+            const group = document.createElementNS(SVG_NS, "g");
+            group.setAttribute("data-switch", sw.id);
+            group.style.color = sw.color;
 
             sw.targets.forEach((devId) => {
                 const devEl = circuitBoardEl.querySelector(`.device-card[data-device="${devId}"]`);
@@ -298,22 +303,62 @@
                     ? devRect.top - boardRect.top + 4
                     : devRect.bottom - boardRect.top - 4;
 
-                const line = document.createElementNS("http://www.w3.org/2000/svg", "line");
-                line.setAttribute("x1", String(x1));
-                line.setAttribute("y1", String(y1));
-                line.setAttribute("x2", String(x2));
-                line.setAttribute("y2", String(y2));
-                line.setAttribute("stroke", sw.color);
+                const pathData = `M ${x1.toFixed(1)} ${y1.toFixed(1)} L ${x2.toFixed(1)} ${y2.toFixed(1)}`;
 
-                let cls = "wire-line";
-                if (state.pulseSwitch === sw.id) {
-                    cls += " pulse";
-                } else if (focusSwitch) {
-                    cls += focusSwitch === sw.id ? " highlighted" : " dimmed";
+                const wirePath = document.createElementNS(SVG_NS, "path");
+                wirePath.setAttribute("d", pathData);
+                wirePath.setAttribute("stroke", sw.color);
+                wirePath.setAttribute("class", "wire-line");
+                group.appendChild(wirePath);
+
+                if (isActive) {
+                    const corePath = document.createElementNS(SVG_NS, "path");
+                    corePath.setAttribute("d", pathData);
+                    corePath.setAttribute("class", "wire-core");
+                    group.appendChild(corePath);
+
+                    // 3 laufende Strom-Partikel entlang des aktiven Kabels
+                    const offsets = ["0s", "-0.5s", "-1.0s"];
+                    offsets.forEach((beginOffset) => {
+                        const dot = document.createElementNS(SVG_NS, "circle");
+                        dot.setAttribute("r", "4.3");
+                        dot.setAttribute("stroke", sw.color);
+                        dot.setAttribute("class", "wire-particle");
+
+                        const motion = document.createElementNS(SVG_NS, "animateMotion");
+                        motion.setAttribute("dur", "1.5s");
+                        motion.setAttribute("repeatCount", "indefinite");
+                        motion.setAttribute("begin", beginOffset);
+                        motion.setAttribute("path", pathData);
+
+                        dot.appendChild(motion);
+                        group.appendChild(dot);
+                    });
                 }
-                line.setAttribute("class", cls);
-                wiringSvgEl.appendChild(line);
             });
+
+            wiringSvgEl.appendChild(group);
+        });
+
+        updateWireHighlights();
+    }
+
+    function updateWireHighlights() {
+        const focusSwitch = state.hoverSwitch || state.pulseSwitch;
+        wiringSvgEl.querySelectorAll(".wire-group, g[data-switch]").forEach((group) => {
+            const id = group.getAttribute("data-switch");
+            const isActive = state.presses[id] % 2 === 1;
+            const classes = ["wire-group"];
+            if (isActive) classes.push("is-active");
+            if (state.pulseSwitch === id) classes.push("is-pulse");
+            if (focusSwitch) {
+                if (focusSwitch === id) {
+                    classes.push("is-highlighted");
+                } else if (!isActive) {
+                    classes.push("is-dimmed");
+                }
+            }
+            group.setAttribute("class", classes.join(" "));
         });
     }
 
@@ -321,9 +366,11 @@
         switchButtons.forEach((btn) => {
             const id = btn.dataset.switch;
             const count = state.presses[id];
+            const isOdd = count % 2 === 1;
             const countEl = document.getElementById(`count-${id}`);
-            countEl.textContent = `${count}×`;
-            btn.classList.toggle("is-odd", count % 2 === 1);
+            countEl.textContent = `${isOdd ? "EIN" : "AUS"} · ${count}×`;
+            btn.classList.toggle("is-odd", isOdd);
+            btn.setAttribute("aria-pressed", String(isOdd));
         });
     }
 
@@ -416,19 +463,19 @@
             if (state.pulseTimer) clearTimeout(state.pulseTimer);
             state.pulseTimer = setTimeout(() => {
                 state.pulseSwitch = null;
-                drawWires();
+                updateWireHighlights();
             }, 460);
             renderAll();
         });
 
         btn.addEventListener("mouseenter", () => {
             state.hoverSwitch = id;
-            drawWires();
+            updateWireHighlights();
         });
         btn.addEventListener("mouseleave", () => {
             if (state.hoverSwitch === id) {
                 state.hoverSwitch = null;
-                drawWires();
+                updateWireHighlights();
             }
         });
     });
