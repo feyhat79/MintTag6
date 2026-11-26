@@ -280,22 +280,39 @@
                     corePath.setAttribute("class", "wire-core");
                     group.appendChild(corePath);
 
-                    // 3 laufende Strom-Partikel entlang des aktiven Kabels
-                    const offsets = ["0s", "-0.5s", "-1.0s"];
+                    // 3 feine, ruhige Licht-Kügelchen komplett innerhalb der Leitung
+                    const duration = "3.3s";
+                    const offsets = ["0s", "-1.1s", "-2.2s"];
                     offsets.forEach((beginOffset) => {
+                        const particleGroup = document.createElementNS(SVG_NS, "g");
+
+                        const glow = document.createElementNS(SVG_NS, "circle");
+                        glow.setAttribute("r", "2.4");
+                        glow.setAttribute("class", "wire-particle-glow");
+
                         const dot = document.createElementNS(SVG_NS, "circle");
-                        dot.setAttribute("r", "4.3");
-                        dot.setAttribute("stroke", sw.color);
+                        dot.setAttribute("r", "1.45");
                         dot.setAttribute("class", "wire-particle");
 
                         const motion = document.createElementNS(SVG_NS, "animateMotion");
-                        motion.setAttribute("dur", "1.5s");
+                        motion.setAttribute("dur", duration);
                         motion.setAttribute("repeatCount", "indefinite");
                         motion.setAttribute("begin", beginOffset);
                         motion.setAttribute("path", pathData);
 
-                        dot.appendChild(motion);
-                        group.appendChild(dot);
+                        const fade = document.createElementNS(SVG_NS, "animate");
+                        fade.setAttribute("attributeName", "opacity");
+                        fade.setAttribute("values", "0;1;1;0");
+                        fade.setAttribute("keyTimes", "0;0.14;0.86;1");
+                        fade.setAttribute("dur", duration);
+                        fade.setAttribute("repeatCount", "indefinite");
+                        fade.setAttribute("begin", beginOffset);
+
+                        particleGroup.appendChild(glow);
+                        particleGroup.appendChild(dot);
+                        particleGroup.appendChild(motion);
+                        particleGroup.appendChild(fade);
+                        group.appendChild(particleGroup);
                     });
                 }
             });
